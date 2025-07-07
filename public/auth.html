@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nash Bot - ระบบจัดการผู้ใช้</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 5px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .form-section {
+            transition: all 0.3s ease;
+        }
+        
+        .password-strength {
+            margin-top: 8px;
+            font-size: 0.8em;
+        }
+        
+        .strength-weak { color: #dc3545; }
+        .strength-medium { color: #ffc107; }
+        .strength-strong { color: #28a745; }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
+            color: #666;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🤖</div>
+            <h1>Nash Bot</h1>
+            <p class="subtitle">ระบบจัดการผู้ใช้</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('login')">เข้าสู่ระบบ</div>
+            <div class="tab" onclick="switchTab('register')">ลงทะเบียน</div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="form-section">
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginUserId">Facebook User ID</label>
+                    <input type="text" id="loginUserId" placeholder="ระบุ Facebook User ID ของคุณ" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">รหัสผ่าน</label>
+                    <input type="password" id="loginPassword" placeholder="ระบุรหัสผ่าน" required>
+                </div>
+                <button type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="form-section hidden">
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="registerUserId">Facebook User ID</label>
+                    <input type="text" id="registerUserId" placeholder="ระบุ Facebook User ID ของคุณ" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">สร้างรหัสผ่าน</label>
+                    <input type="password" id="registerPassword" placeholder="สร้างรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)" 
+                           required minlength="6" oninput="checkPasswordStrength()">
+                    <div id="passwordStrength" class="password-strength"></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
+                    <input type="password" id="confirmPassword" placeholder="ยืนยันรหัสผ่านอีกครั้ง" required>
+                </div>
+                <button type="submit" id="registerBtn">ลงทะเบียน</button>
+            </form>
+        </div>
+
+        <!-- Status Message -->
+        <div id="statusMessage"></div>
+
+        <div class="footer">
+            <p>วิธีหา Facebook User ID:</p>
+            <p>1. เข้า <a href="https://www.facebook.com" target="_blank">Facebook</a></p>
+            <p>2. คลิกโปรไฟล์ของคุณ</p>
+            <p>3. ดู URL จะมีตัวเลขยาวๆ นั่นคือ User ID</p>
+        </div>
+    </div>
+
+    <script>
+        // Switch between login and register tabs
+        function switchTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                tabs[1].classList.add('active');
+            }
+            
+            clearStatus();
+        }
+
+        // Check password strength
+        function checkPasswordStrength() {
+            const password = document.getElementById('registerPassword').value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            
+            if (password.length === 0) {
+                strengthDiv.textContent = '';
+                return;
+            }
+            
+            let strength = 0;
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            if (strength <= 2) {
+                strengthDiv.textContent = 'รหัสผ่านอ่อน';
+                strengthDiv.className = 'password-strength strength-weak';
+            } else if (strength <= 4) {
+                strengthDiv.textContent = 'รหัสผ่านปานกลาง';
+                strengthDiv.className = 'password-strength strength-medium';
+            } else {
+                strengthDiv.textContent = 'รหัสผ่านแข็งแกร่ง';
+                strengthDiv.className = 'password-strength strength-strong';
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        // Clear status message
+        function clearStatus() {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.style.display = 'none';
+        }
+
+        // Handle login
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const userId = document.getElementById('loginUserId').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!userId || !password) {
+                showStatus('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'กำลังเข้าสู่ระบบ...';
+            clearStatus();
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(result.message, 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showStatus(result.message, 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+            }
+            
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'เข้าสู่ระบบ';
+        }
+
+        // Handle registration
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const userId = document.getElementById('registerUserId').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const registerBtn = document.getElementById('registerBtn');
+            
+            if (!userId || !password || !confirmPassword) {
+                showStatus('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showStatus('รหัสผ่านไม่ตรงกัน', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showStatus('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร', 'error');
+                return;
+            }
+            
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'กำลังลงทะเบียน...';
+            clearStatus();
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(result.message + ' สามารถเข้าสู่ระบบได้แล้ว', 'success');
+                    setTimeout(() => {
+                        switchTab('login');
+                        document.getElementById('loginUserId').value = userId;
+                    }, 2000);
+                } else {
+                    showStatus(result.message, 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+            }
+            
+            registerBtn.disabled = false;
+            registerBtn.textContent = 'ลงทะเบียน';
+        }
+
+        // Check if user is already logged in when page loads
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const result = await response.json();
+                
+                if (result.isLoggedIn) {
+                    showStatus(`ยินดีต้อนรับ! คุณเข้าสู่ระบบแล้ว (ID: ${result.userId})`, 'success');
+                }
+            } catch (error) {
+                console.log('Not logged in or error checking status');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -18,7 +18,9 @@
     "firebase": "^11.10.0",
     "jimp": "^1.6.0",
     "jsdom": "^26.1.0",
+    "node-telegram-bot-api": "^0.66.0",
     "puppeteer": "^24.10.1",
+    "qrcode-reader": "^1.0.4",
     "ws3-fca": "^2.0.1"
   }
 }
