@@ -1,0 +1,32 @@
+{
+  "example_thread_id_1": {
+    "enabled": true,
+    "protectGroup": true,
+    "protectNicknames": true,
+    "protectImage": true,
+    "originalData": {
+      "groupName": "กลุ่มทดสอบ",
+      "groupImage": "https://example.com/image.jpg",
+      "emoji": "🔥",
+      "color": "#0084ff",
+      "members": {
+        "user_id_1": {
+          "name": "ผู้ใช้ 1",
+          "nickname": "nickname 1"
+        },
+        "user_id_2": {
+          "name": "ผู้ใช้ 2",
+          "nickname": null
+        }
+      },
+      "lastUpdated": "2025-07-04T10:00:00.000Z"
+    }
+  },
+  "example_thread_id_2": {
+    "enabled": false,
+    "protectGroup": false,
+    "protectNicknames": false,
+    "protectImage": false,
+    "originalData": null
+  }
+}

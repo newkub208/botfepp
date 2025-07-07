@@ -1,0 +1,14 @@
+{
+  "example_thread_id_1": {
+    "enabled": true,
+    "customWords": [
+      "คำที่ไม่ดี",
+      "spam",
+      "โฆษณา"
+    ]
+  },
+  "example_thread_id_2": {
+    "enabled": false,
+    "customWords": []
+  }
+}
