@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 module.exports = {
   name: "joinNoti",
-  version: "1.0.0",
-  description: "Join notifications",
+  version: "1.1.0",
+  description: "Join notifications with auto-kick integration",
   author: "joshuaApostol",
   async onEvent({ api, event, prefix }) {
     try {
@@ -27,35 +28,76 @@ module.exports = {
           const { addedParticipants } = logMessageData;
           const threadInfo = await api.getThreadInfo(threadID);
           const currentMembersCount = threadInfo.participantIDs.length;
-          const participantsList = addedParticipants.map(i => i.fullName).join(", ");
-          const welcomeMessage = `
-            สวัสดี ${participantsList} คุณเป็นสมาชิกคนที่ ${currentMembersCount} ของ 🤖${threadInfo.name}🤖\n\n
-            『 ขอให้สนุกและมีความสุขกับการอยู่ที่นี่ 』
-          `;
 
-          const welcomeFolder = path.join(__dirname, 'welcome');
-          fs.readdir(welcomeFolder, (err, files) => {
-            if (err) {
-              console.error('Error reading welcome folder:', err);
-              api.sendMessage('An error occurred while processing the welcome video.', threadID);
-              return;
+          // Process each new member
+          for (const participant of addedParticipants) {
+            try {
+              // Get user info
+              const userInfo = await api.getUserInfo(participant.userFbId);
+              const userName = participant.fullName || userInfo[participant.userFbId]?.name || 'สมาชิกใหม่';
+              
+              // Use the specified GIF URL
+              const welcomeGifUrl = 'https://i.pinimg.com/originals/ff/81/de/ff81dee1dcdd40d560569fe2ae94b6d3.gif';
+
+              // Download the welcome GIF
+              const response = await axios.get(welcomeGifUrl, { 
+                responseType: 'arraybuffer',
+                timeout: 15000,
+                validateStatus: function (status) {
+                  return status >= 200 && status < 300;
+                }
+              });
+
+              if (response.status === 200) {
+                const welcomeMessage = `สวัสดี ${userName} 🎉\nคุณเป็นสมาชิกคนที่ ${currentMembersCount} ของ 🤖${threadInfo.name}🤖\n\n『 ขอให้สนุกและมีความสุขกับการอยู่ที่นี่ 』\n\n⚠️ หมายเหตุ: กรุณาพูดคุยภายใน 10 นาที มิฉะนั้นจะถูกเตะออกจากกลุ่มอัตโนมัติ`;
+
+                // Save GIF temporarily
+                const tempFileName = `welcome_${participant.userFbId}_${Date.now()}.gif`;
+                const tempFilePath = path.join(__dirname, '../commands/cache', tempFileName);
+                
+                // Ensure cache directory exists
+                const cacheDir = path.join(__dirname, '../commands/cache');
+                if (!fs.existsSync(cacheDir)) {
+                  fs.mkdirSync(cacheDir, { recursive: true });
+                }
+                
+                // Write GIF to temporary file
+                fs.writeFileSync(tempFilePath, Buffer.from(response.data));
+                
+                // Create read stream from temporary file
+                const gifStream = fs.createReadStream(tempFilePath);
+
+                // Send welcome message with the GIF
+                await api.sendMessage({
+                  body: welcomeMessage,
+                  attachment: gifStream
+                }, threadID);
+
+                // Clean up temporary file after a delay
+                setTimeout(() => {
+                  try {
+                    if (fs.existsSync(tempFilePath)) {
+                      fs.unlinkSync(tempFilePath);
+                    }
+                  } catch (cleanupError) {
+                    console.error('Error cleaning up temp file:', cleanupError);
+                  }
+                }, 10000); // Delete after 10 seconds
+
+              } else {
+                throw new Error(`Failed to download GIF: ${response.status}`);
+              }
+
+            } catch (error) {
+              const userName = participant.fullName || 'สมาชิกใหม่';
+              console.error('Error sending welcome GIF for user:', userName);
+              console.error('Error details:', error.response?.status, error.response?.statusText);
+              
+              // Fallback to text-only message if GIF fails
+              const fallbackMessage = `สวัสดี ${userName} 🎉\nคุณเป็นสมาชิกคนที่ ${currentMembersCount} ของ 🤖${threadInfo.name}🤖\n\n『 ขอให้สนุกและมีความสุขกับการอยู่ที่นี่ 』\n\n⚠️ หมายเหตุ: กรุณาพูดคุยภายใน 10 นาที มิฉะนั้นจะถูกเตะออกจากกลุ่มอัตโนมัติ`;
+              await api.sendMessage(fallbackMessage, threadID);
             }
-
-            const videoFiles = files.filter(file => {
-              const ext = path.extname(file).toLowerCase();
-              return ['.mp4', '.mov', '.avi', '.mkv'].includes(ext);
-            });
-
-            if (videoFiles.length > 0) {
-              const randomVideo = videoFiles[Math.floor(Math.random() * videoFiles.length)];
-              const videoPath = path.join(welcomeFolder, randomVideo);
-              const videoStream = fs.createReadStream(videoPath);
-
-              api.sendMessage({ body: welcomeMessage, attachment: videoStream }, threadID);
-            } else {
-              api.sendMessage(welcomeMessage, threadID);
-            }
-          });
+          }
         }
       }
     } catch (error) {

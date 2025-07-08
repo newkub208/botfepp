@@ -1,0 +1,33 @@
+{
+  "61555184860915": {
+    "requests": [
+      {
+        "prompt": "คุยกับai https://kaiz-apis.gleeze.com/api/deepseek-v3?ask=hi&apikey=e62d60dd-8853-4233-bbcb-9466b4cbc265 {\n  \"author\": \"Kaizenji\",\n  \"response\": \"Hello! How can I assist you today? 😊\"\n}",
+        "commandName": "chatWithAI",
+        "timestamp": 1751991729959
+      },
+      {
+        "prompt": "ขอคำสั่งเเนว ดูเวลาไทย",
+        "commandName": "timeThailand",
+        "timestamp": 1751991345129
+      },
+      {
+        "prompt": "ขอคำสั่งเเนว สวัสดีดีเเล้วตอบ",
+        "commandName": "greet",
+        "timestamp": 1751990759555
+      },
+      {
+        "prompt": "https://www.facebook.com/share/v/1GW4LbwdSt/ถ้าใช้คำสั่งมันจะโชว์ลิ้งนี้",
+        "commandName": "showLink",
+        "timestamp": 1751990622747
+      },
+      {
+        "prompt": "https://www.facebook.com/share/v/1GW4LbwdSt/ถ้าใช้คำสั่งมันจะโชว์ลิ้งนี้",
+        "commandName": "showLink",
+        "timestamp": 1751987789445
+      }
+    ],
+    "totalCommands": 5,
+    "lastUsed": 1751991729959
+  }
+}

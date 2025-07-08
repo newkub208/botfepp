@@ -139,6 +139,11 @@ app.post('/api/commands', (req, res) => {
             global.NashBoT.commands.set(alias, module);
           });
         }
+        
+        // รีโหลดคำสั่งที่สร้างขึ้นใหม่ทั้งหมด
+        if (global.NashBoT.reloadGeneratedCommands) {
+          global.NashBoT.reloadGeneratedCommands();
+        }
       }
     } catch (loadError) {
       return res.status(400).json({ success: false, message: 'Load Error: ' + loadError.message });
@@ -476,6 +481,7 @@ global.NashBoT = {
   events: new Map(),
   onlineUsers: new Map(),
   cooldowns: new Map(),
+  reloadGeneratedCommands: () => reloadGeneratedCommands()
 };
 
 global.NashBot = {
@@ -493,17 +499,23 @@ const loadModules = (type) => {
 
   console.log(chalk.bold.redBright(`──LOADING ${type.toUpperCase()}──●`));
   
-  files.forEach(file => {
+    files.forEach(file => {
     const module = require(path.join(folderPath, file));
     if (module && module.name && module[type === "commands" ? "execute" : "onEvent"]) {
       module.nashPrefix = module.nashPrefix !== undefined ? module.nashPrefix : true;
       module.cooldowns = module.cooldowns || 0;
-      global.NashBoT[type].set(module.name, module);
       
-      if (type === "commands" && module.aliases && Array.isArray(module.aliases)) {
-        module.aliases.forEach(alias => {
-          global.NashBoT[type].set(alias, module);
-        });
+      // เก็บคำสั่งด้วยตัวพิมพ์เล็กสำหรับ commands
+      if (type === "commands") {
+        global.NashBoT[type].set(module.name.toLowerCase(), module);
+        
+        if (module.aliases && Array.isArray(module.aliases)) {
+          module.aliases.forEach(alias => {
+            global.NashBoT[type].set(alias.toLowerCase(), module);
+          });
+        }
+      } else {
+        global.NashBoT[type].set(module.name, module);
       }
       
       console.log(
@@ -515,6 +527,70 @@ const loadModules = (type) => {
       );
     }
   });
+
+  // โหลดคำสั่งจากโฟลเดอร์ generated_commands ด้วย
+  if (type === "commands") {
+    const generatedPath = path.join(folderPath, "generated_commands");
+    if (fs.existsSync(generatedPath)) {
+      const generatedFiles = fs.readdirSync(generatedPath).filter(file => file.endsWith(".js"));
+      
+      generatedFiles.forEach(file => {
+        try {
+          const filePath = path.join(generatedPath, file);
+          delete require.cache[require.resolve(filePath)];
+          const module = require(filePath);
+          
+          if (module && module.name && module.execute) {
+            module.nashPrefix = module.nashPrefix !== undefined ? module.nashPrefix : true;
+            module.cooldowns = module.cooldowns || 0;
+            
+            // ตรวจสอบว่าคำสั่งซ้ำหรือไม่
+            if (global.NashBoT.commands.has(module.name.toLowerCase())) {
+              console.log(
+                chalk.bold.gray("[") + 
+                chalk.bold.yellow("WARN") + 
+                chalk.bold.gray("] ") + 
+                chalk.bold.yellow(`Command name conflict: ${module.name} (overwriting)`)
+              );
+            }
+            
+            // เก็บคำสั่งด้วยตัวพิมพ์เล็ก
+            global.NashBoT.commands.set(module.name.toLowerCase(), module);
+            
+            if (module.aliases && Array.isArray(module.aliases)) {
+              module.aliases.forEach(alias => {
+                if (global.NashBoT.commands.has(alias.toLowerCase())) {
+                  console.log(
+                    chalk.bold.gray("[") + 
+                    chalk.bold.yellow("WARN") + 
+                    chalk.bold.gray("] ") + 
+                    chalk.bold.yellow(`Alias conflict: ${alias} (overwriting)`)
+                  );
+                }
+                global.NashBoT.commands.set(alias.toLowerCase(), module);
+              });
+            }
+            
+            console.log(
+              chalk.bold.gray("[") + 
+              chalk.bold.cyan("INFO") + 
+              chalk.bold.gray("] ") + 
+              chalk.bold.green("Loaded generated command: ") + 
+              chalk.bold.magenta(module.name) +
+              (module.aliases ? chalk.bold.gray(` [${module.aliases.join(', ')}]`) : "")
+            );
+          }
+        } catch (error) {
+          console.error(
+            chalk.bold.gray("[") + 
+            chalk.bold.red("ERROR") + 
+            chalk.bold.gray("] ") + 
+            chalk.bold.redBright(`Failed to load generated command ${file}: ${error.message}`)
+          );
+        }
+      });
+    }
+  }
 };
 
 const relogin = async () => {
@@ -739,10 +815,28 @@ const handleMessage = async (api, event, prefix) => {
   let [command, ...args] = event.body.trim().split(" ");
   if (command.startsWith(prefix)) command = command.slice(prefix.length);
 
-  const cmdFile = global.NashBoT.commands.get(command.toLowerCase());
+  // Debug log สำหรับการค้นหาคำสั่ง
+  const commandLower = command.toLowerCase();
+  const cmdFile = global.NashBoT.commands.get(commandLower);
+  
   if (cmdFile) {
+    console.log(
+      chalk.bold.gray("[") + 
+      chalk.bold.blue("CMD") + 
+      chalk.bold.gray("] ") + 
+      chalk.bold.white(`Command found: "${commandLower}" -> "${cmdFile.name}" by ${event.senderID}`)
+    );
+    
     const nashPrefix = cmdFile.nashPrefix !== false;
-    if (nashPrefix && !event.body.toLowerCase().startsWith(prefix)) return;
+    if (nashPrefix && !event.body.toLowerCase().startsWith(prefix)) {
+      console.log(
+        chalk.bold.gray("[") + 
+        chalk.bold.yellow("PREFIX") + 
+        chalk.bold.gray("] ") + 
+        chalk.bold.yellow(`Command requires prefix "${prefix}" but not provided`)
+      );
+      return;
+    }
 
     const userId = event.senderID;
     
@@ -781,12 +875,32 @@ const handleMessage = async (api, event, prefix) => {
     }
 
     try {
+      console.log(
+        chalk.bold.gray("[") + 
+        chalk.bold.green("EXEC") + 
+        chalk.bold.gray("] ") + 
+        chalk.bold.green(`Executing "${cmdFile.name}" for user ${userId}`)
+      );
       await cmdFile.execute(api, event, args, prefix);
     } catch (err) {
+      console.error(
+        chalk.bold.gray("[") + 
+        chalk.bold.red("CMD_ERROR") + 
+        chalk.bold.gray("] ") + 
+        chalk.bold.redBright(`Command "${cmdFile.name}" failed: ${err.message}`)
+      );
       setTimeout(() => {
         api.sendMessage(`Command error: ${err.message}`, event.threadID);
       }, Math.random() * 1000 + 500);
     }
+  } else if (command.length > 0 && event.body.startsWith(prefix)) {
+    // แสดงคำสั่งที่ไม่พบ
+    console.log(
+      chalk.bold.gray("[") + 
+      chalk.bold.red("NOT_FOUND") + 
+      chalk.bold.gray("] ") + 
+      chalk.bold.red(`Command not found: "${commandLower}"`)
+    );
   }
 };
 
@@ -820,3 +934,83 @@ init().then(() => app.listen(PORT, '0.0.0.0', () => console.log(
   chalk.bold.gray("] ") + 
   chalk.bold.greenBright(`Running on http://0.0.0.0:${PORT}`)
 )));
+
+// ฟังก์ชันรีโหลดคำสั่งที่สร้างใหม่
+const reloadGeneratedCommands = () => {
+  try {
+    const generatedPath = path.join(__dirname, "modules", "commands", "generated_commands");
+    if (!fs.existsSync(generatedPath)) {
+      console.log("Generated commands folder not found");
+      return;
+    }
+
+    const generatedFiles = fs.readdirSync(generatedPath).filter(file => file.endsWith(".js"));
+    let reloadedCount = 0;
+    
+    console.log(chalk.bold.cyan("🔄 Reloading generated commands..."));
+    
+    generatedFiles.forEach(file => {
+      try {
+        const filePath = path.join(generatedPath, file);
+        
+        // ลบ cache เก่า
+        delete require.cache[require.resolve(filePath)];
+        
+        // โหลด module ใหม่
+        const module = require(filePath);
+        
+        if (module && module.name && module.execute) {
+          module.nashPrefix = module.nashPrefix !== undefined ? module.nashPrefix : true;
+          module.cooldowns = module.cooldowns || 0;
+          
+          // ลบคำสั่งเก่าออกก่อน (ทั้งชื่อหลักและ aliases)
+          if (global.NashBoT.commands.has(module.name.toLowerCase())) {
+            const oldModule = global.NashBoT.commands.get(module.name.toLowerCase());
+            global.NashBoT.commands.delete(module.name.toLowerCase());
+            
+            // ลบ aliases เก่าด้วย
+            if (oldModule.aliases && Array.isArray(oldModule.aliases)) {
+              oldModule.aliases.forEach(alias => {
+                global.NashBoT.commands.delete(alias.toLowerCase());
+              });
+            }
+          }
+          
+          // เพิ่มคำสั่งใหม่ (ใช้ตัวพิมพ์เล็ก)
+          global.NashBoT.commands.set(module.name.toLowerCase(), module);
+          
+          // เพิ่ม aliases ใหม่ (ใช้ตัวพิมพ์เล็ก)
+          if (module.aliases && Array.isArray(module.aliases)) {
+            module.aliases.forEach(alias => {
+              global.NashBoT.commands.set(alias.toLowerCase(), module);
+            });
+          }
+          
+          reloadedCount++;
+          console.log(
+            chalk.bold.gray("[") + 
+            chalk.bold.green("RELOAD") + 
+            chalk.bold.gray("] ") + 
+            chalk.bold.magenta(`Generated command: ${module.name}`)
+          );
+        }
+      } catch (error) {
+        console.error(
+          chalk.bold.gray("[") + 
+          chalk.bold.red("ERROR") + 
+          chalk.bold.gray("] ") + 
+          chalk.bold.redBright(`Failed to reload ${file}: ${error.message}`)
+        );
+      }
+    });
+    
+    console.log(chalk.bold.green(`✅ Reloaded ${reloadedCount} generated commands`));
+    return reloadedCount;
+  } catch (error) {
+    console.error("Error in reloadGeneratedCommands:", error);
+    return 0;
+  }
+};
+
+// เพิ่มฟังก์ชันเป็น global
+global.reloadGeneratedCommands = reloadGeneratedCommands;

@@ -91,14 +91,19 @@ function deletePage(stateKey) {
 // --- โครงสร้างคำสั่งหลัก ---
 module.exports = {
   name: "สร้างเว็บ",
-  description: "สร้างเว็บเพจจากไอเดียหรือรูปภาพ โดย AI จะสร้างตามไอเดียแบบตรงไปตรงมา",
-  version: "7.6.0", // อัปเดตเวอร์ชัน
-  aliases: ["createweb", "webai", "htmlai", "สร้างหน้าเว็บ"],
+  description: "สร้างเว็บเพจจากไอเดียหรือรูปภาพ โดย AI จะสร้างตามไอเดียแบบตรงไปตรงมา + ดูโค้ดที่สร้างได้ผ่าน Pastebin",
+  version: "7.7.0", // อัปเดตเวอร์ชัน - เพิ่มฟีเจอร์ดูโค้ด
+  aliases: ["createweb", "webai", "htmlai", "สร้างหน้าเว็บ", "viewcode", "ดูโค้ด"],
   nashPrefix: false,
   cooldowns: 30,
 
   async execute(api, event, args, prefix) {
     const { threadID, messageID, senderID, type, messageReply } = event;
+    
+    // ตรวจสอบคำสั่งดูโค้ด
+    if (args.length > 0 && (args[0].toLowerCase() === 'viewcode' || args[0] === 'ดูโค้ด')) {
+      return await this.handleViewCode(api, event, args.slice(1));
+    }
     
     let inputArgs = [...args];
     let prompt = "";
@@ -138,7 +143,10 @@ module.exports = {
 
     if (!prompt && !imageUrl) {
       return api.sendMessage(
-        `📝 โปรดระบุไอเดียสำหรับสร้างเว็บ หรือ Reply รูปภาพ\n\nตัวอย่าง:\n- ${prefix}สร้างเว็บ เว็บไซต์ขายดอกไม้ 15\n- (Reply รูป) ${prefix}สร้างเว็บ แนะนำตัวละครในภาพ\n\n(เวลาที่กำหนดได้ 1-60 นาที)`,
+        `📝 โปรดระบุไอเดียสำหรับสร้างเว็บ หรือ Reply รูปภาพ\n\n` +
+        `ตัวอย่างการสร้าง:\n- ${prefix}สร้างเว็บ เว็บไซต์ขายดอกไม้ 15\n- (Reply รูป) ${prefix}สร้างเว็บ แนะนำตัวละครในภาพ\n\n` +
+        `ตัวอย่างการดูโค้ด:\n- ${prefix}สร้างเว็บ ดูโค้ด all\n- ${prefix}สร้างเว็บ ดูโค้ด เว็บขายดอกไม้\n\n` +
+        `(เวลาที่กำหนดได้ 1-60 นาที)`,
         threadID,
         messageID
       );
@@ -148,11 +156,15 @@ module.exports = {
     const existingState = state[stateKey];
 
     if (existingState && existingState.filename) {
-      await api.sendMessage(
-        `✏️ พบหน้าเว็บเดิมจากไอเดีย/รูปภาพนี้ (จะถูกลบใน ${Math.ceil((existingState.expiresAt - Date.now()) / 60000)} นาที)\nกำลังสร้างทับ...`,
-        threadID,
-        messageID
-      );
+      let existingMessage = `✏️ พบหน้าเว็บเดิมจากไอเดีย/รูปภาพนี้ (จะถูกลบใน ${Math.ceil((existingState.expiresAt - Date.now()) / 60000)} นาที)\n`;
+      
+      if (existingState.pastebinUrl) {
+        existingMessage += `📄 ดูโค้ดเดิม: ${existingState.pastebinUrl}\n`;
+      }
+      
+      existingMessage += `กำลังสร้างทับ...`;
+      
+      await api.sendMessage(existingMessage, threadID, messageID);
       return buildPage(api, event, prompt, minutes, true, stateKey, existingState.filename, imageUrl);
     }
     
@@ -161,6 +173,78 @@ module.exports = {
         newFilename = generateRandomFilename();
     }
     return buildPage(api, event, prompt, minutes, false, stateKey, newFilename, imageUrl);
+  },
+
+  // ฟังก์ชันดูโค้ดของเว็บที่สร้างไว้
+  async handleViewCode(api, event, args) {
+    const { threadID, messageID } = event;
+    
+    if (args.length === 0) {
+      return api.sendMessage(
+        `📋 การใช้งานคำสั่งดูโค้ด:\n\n` +
+        `🔸 ดูโค้ดทั้งหมด: ดูโค้ด all\n` +
+        `🔸 ดูโค้ดจากไอเดีย: ดูโค้ด <ไอเดียที่ใช้สร้าง>\n\n` +
+        `ตัวอย่าง:\n- ดูโค้ด all\n- ดูโค้ด เว็บขายดอกไม้`,
+        threadID,
+        messageID
+      );
+    }
+
+    const query = args.join(" ").trim().toLowerCase();
+    
+    if (query === "all" || query === "ทั้งหมด") {
+      // แสดงรายการเว็บทั้งหมดที่มีอยู่
+      const activePages = Object.entries(state).filter(([key, rec]) => 
+        rec && rec.filename && rec.pastebinUrl
+      );
+      
+      if (activePages.length === 0) {
+        return api.sendMessage(
+          `📄 ไม่พบเว็บเพจที่สร้างไว้ในขณะนี้`,
+          threadID,
+          messageID
+        );
+      }
+      
+      let message = `📋 รายการเว็บที่สร้างไว้ (${activePages.length} เว็บ):\n\n`;
+      
+      activePages.forEach(([key, rec], index) => {
+        const minutesLeft = Math.ceil((rec.expiresAt - Date.now()) / 60000);
+        const createdTime = new Date(rec.createdAt || Date.now()).toLocaleString('th-TH');
+        message += `${index + 1}. 🌐 ${key.replace(/-/g, ' ')}\n`;
+        message += `   📄 โค้ด: ${rec.pastebinUrl}\n`;
+        message += `   ⏰ เหลือเวลา: ${minutesLeft} นาที\n`;
+        message += `   📅 สร้างเมื่อ: ${createdTime}\n\n`;
+      });
+      
+      return api.sendMessage(message, threadID, messageID);
+    } else {
+      // ค้นหาเว็บจากไอเดีย
+      const searchKey = slugify(query);
+      const foundState = state[searchKey];
+      
+      if (!foundState || !foundState.pastebinUrl) {
+        return api.sendMessage(
+          `❌ ไม่พบเว็บที่สร้างจากไอเดีย "${query}"\n\n` +
+          `💡 ลองใช้: ดูโค้ด all เพื่อดูรายการทั้งหมด`,
+          threadID,
+          messageID
+        );
+      }
+      
+      const minutesLeft = Math.ceil((foundState.expiresAt - Date.now()) / 60000);
+      const HOST = "http://menu.panelaimbot.com:5000";
+      const pageUrl = `${HOST}/pages/${foundState.filename}`;
+      
+      return api.sendMessage(
+        `📄 พบโค้ดจากไอเดีย: "${query}"\n\n` +
+        `🔗 ลิงก์เว็บ: ${pageUrl}\n` +
+        `📄 ดูโค้ด: ${foundState.pastebinUrl}\n` +
+        `⏰ เหลือเวลา: ${minutesLeft} นาที`,
+        threadID,
+        messageID
+      );
+    }
   },
 };
 
@@ -190,7 +274,7 @@ async function buildPage(api, event, userPrompt, minutes, isUpdate, stateKey, fi
         newApiUrl = `https://kaiz-apis.gleeze.com/api/gemini-flash-2.0?q=${encodeURIComponent(apiPrompt)}&uid=${senderID}&imageUrl=${encodeURIComponent(imageUrl)}&apikey=${apiKey}`;
     } else {
         console.log("[INFO] Using text API for web generation.");
-        apiPrompt = `สร้างโค้ด HTML แบบไฟล์เดียว (Single-file HTML with inline CSS and JS) สำหรับไอเดียนี้: "${userPrompt}". ${promptSuffix}`;
+        apiPrompt = `สร้างโค้ด HTML แบบไฟล์เดียว ขอสวยๆ เหมือนเว็บแอพมืออาชีพทำ (Single-file HTML with inline CSS and JS) สำหรับไอเดียนี้: "${userPrompt}". ${promptSuffix}`;
         newApiUrl = `https://kaiz-apis.gleeze.com/api/gemini-pro?ask=${encodeURIComponent(apiPrompt)}&uid=${senderID}&apikey=${apiKey}`;
     }
     
@@ -224,9 +308,20 @@ async function buildPage(api, event, userPrompt, minutes, isUpdate, stateKey, fi
     // --- STEP 3: บันทึกไฟล์และจัดการสถานะ ---
     fs.writeFileSync(fp, html);
 
+    // --- STEP 3.5: อัปโหลดโค้ดไปยัง Pastebin ---
+    await api.editMessage("📤 กำลังอัปโหลดโค้ดเพื่อให้ดูได้...", waitingMessage.messageID);
+    const pastebinTitle = `Web Code - ${userPrompt ? userPrompt.substring(0, 50) : 'Generated Web'}`;
+    const pastebinUrl = await uploadToPastebin(html, pastebinTitle);
+
     if (timeouts[stateKey]) clearTimeout(timeouts[stateKey]);
     const expiresAt = Date.now() + minutes * 60 * 1000;
-    state[stateKey] = { filename, minutes, expiresAt };
+    state[stateKey] = { 
+      filename, 
+      minutes, 
+      expiresAt,
+      pastebinUrl: pastebinUrl || null,
+      createdAt: Date.now()
+    };
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     scheduleExpiry(stateKey, state[stateKey]);
 
@@ -235,10 +330,16 @@ async function buildPage(api, event, userPrompt, minutes, isUpdate, stateKey, fi
 
     const sendFallbackMessage = (reason) => {
       console.error(`[Screenshot Fallback] Reason: ${reason}`);
-      const fallbackBody = `✅ ${isUpdate ? "อัปเดต" : "สร้าง"}หน้าเว็บสำเร็จ! (แต่สร้างภาพตัวอย่างไม่ได้)\n` +
-                           `🔗 ลิงก์:\n${pageUrl}\n` +
-                           `⏱️ เวลาที่ใช้: ${durationInSeconds} วินาที\n` +
-                           `🗑️ จะถูกลบใน: ${minutes} นาที`;
+      const rec = state[stateKey];
+      let fallbackBody = `✅ ${isUpdate ? "อัปเดต" : "สร้าง"}หน้าเว็บสำเร็จ! (แต่สร้างภาพตัวอย่างไม่ได้)\n` +
+                         `🔗 ลิงก์:\n${pageUrl}\n` +
+                         `⏱️ เวลาที่ใช้: ${durationInSeconds} วินาที\n` +
+                         `🗑️ จะถูกลบใน: ${minutes} นาที`;
+      
+      if (rec && rec.pastebinUrl) {
+        fallbackBody += `\n📄 ดูโค้ด: ${rec.pastebinUrl}`;
+      }
+      
       api.sendMessage(fallbackBody, threadID, messageID);
     };
 
@@ -265,10 +366,15 @@ async function buildPage(api, event, userPrompt, minutes, isUpdate, stateKey, fi
       imageRes.data.pipe(writer);
 
       writer.on("finish", () => {
-        const body = `✅ ${isUpdate ? "อัปเดต" : "สร้าง"}หน้าเว็บสำเร็จ!\n` +
-                     `🔗 ลิงก์:\n${pageUrl}\n` +
-                     `⏱️ เวลาที่ใช้: ${durationInSeconds} วินาที\n` +
-                     `🗑️ จะถูกลบใน: ${minutes} นาที`;
+        const rec = state[stateKey];
+        let body = `✅ ${isUpdate ? "อัปเดต" : "สร้าง"}หน้าเว็บสำเร็จ!\n` +
+                   `🔗 ลิงก์:\n${pageUrl}\n` +
+                   `⏱️ เวลาที่ใช้: ${durationInSeconds} วินาที\n` +
+                   `🗑️ จะถูกลบใน: ${minutes} นาที`;
+        
+        if (rec && rec.pastebinUrl) {
+          body += `\n📄 ดูโค้ด: ${rec.pastebinUrl}`;
+        }
         
         api.sendMessage(body, threadID, (err, info) => {
             if (err) return console.error(err);
@@ -305,5 +411,41 @@ async function buildPage(api, event, userPrompt, minutes, isUpdate, stateKey, fi
     if (waitingMessage && waitingMessage.messageID) {
         api.unsendMessage(waitingMessage.messageID);
     }
+  }
+}
+
+// --- การตั้งค่า Pastebin API ---
+const PASTEBIN_API_KEY = "8ApRJDKLKO6sPUJeKID-2xFNF3Uq2Q02";
+const PASTEBIN_API_URL = "https://pastebin.com/api/api_post.php";
+
+// --- ฟังก์ชันอัปโหลดโค้ดไปยัง Pastebin ---
+async function uploadToPastebin(code, title = "Generated Web Code") {
+  try {
+    const params = new URLSearchParams({
+      api_dev_key: PASTEBIN_API_KEY,
+      api_option: "paste",
+      api_paste_code: code,
+      api_paste_name: title,
+      api_paste_format: "html5",
+      api_paste_private: "0", // 0=public, 1=unlisted, 2=private
+      api_paste_expire_date: "1H" // 1 hour expiration
+    });
+
+    const response = await axios.post(PASTEBIN_API_URL, params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      timeout: 30000
+    });
+
+    if (response.data && response.data.startsWith('https://pastebin.com/')) {
+      return response.data.trim();
+    } else {
+      console.error('Pastebin error:', response.data);
+      return null;
+    }
+  } catch (error) {
+    console.error('Failed to upload to Pastebin:', error.message);
+    return null;
   }
 }
