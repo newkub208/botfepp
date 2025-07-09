@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "maxMessagesPerMinute": 10,
+  "warningCount": 3,
+  "timeWindow": 60000,
+  "ignoredUIDs": [],
+  "adminUID": "61555184860915",
+  "threads": {}
+}

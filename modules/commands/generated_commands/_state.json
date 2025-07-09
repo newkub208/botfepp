@@ -22,5 +22,11 @@
     "expiresAt": 1752078129959,
     "prompt": "คุยกับai https://kaiz-apis.gleeze.com/api/deepseek-v3?ask=hi&apikey=e62d60dd-8853-4233-bbcb-9466b4cbc265 {\n  \"author\": \"Kaizenji\",\n  \"response\": \"Hello! How can I assist you today? 😊\"\n}",
     "creatorId": "61555184860915"
+  },
+  "autoReplyTag": {
+    "filename": "autoReplyTag.js",
+    "expiresAt": 1752121606798,
+    "prompt": "เวลามีคนเเท็ก 61555184860915 uid ให้มันตอบกลับว่าไม่ว่าง",
+    "creatorId": "61555184860915"
   }
 }

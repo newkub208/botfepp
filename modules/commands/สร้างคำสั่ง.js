@@ -1,8 +1,8 @@
 /**
  * @name สร้างคำสั่ง
- * @description สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI (ใช้ Kaiz-AI API) คำสั่งจะมีอายุ 1 วัน
- * @version 2.3.0
- * @author (Your Name) - Updated to use Kaiz-AI endpoint
+ * @description สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI (ใช้ Kaiz-AI API) คำสั่งจะมีอายุ 1 วัน - ปรับปรุงความเสถียร
+ * @version 2.4.1
+ * @author (Your Name) - Updated to use Kaiz-AI endpoint + Enhanced error handling
  * @nashPrefix false
  * @cooldowns 60
  * @aliases ["createcmd", "newcmd", "cmd", "คำสั่ง"]
@@ -276,8 +276,8 @@ async function showUserHistory(api, event, prefix) {
 // --- Main Command ---
 module.exports = {
     name: "สร้างคำสั่ง",
-    description: "สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI พร้อมระบบจดจำผู้ใช้ คำสั่งจะมีอายุ 1 วัน",
-    version: "2.4.0",
+    description: "สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI พร้อมระบบจดจำผู้ใช้ คำสั่งจะมีอายุ 1 วัน - ปรับปรุงความเสถียร",
+    version: "2.4.1",
     aliases: ["createcmd", "newcmd", "cmd", "คำสั่ง"],
     nashPrefix: false,
     cooldowns: 60,
@@ -342,7 +342,7 @@ module.exports = {
             const fullApiPrompt = `
                 ${generateSmartPrompt(userPrompt, senderID)}
                 
-                Format required:
+                Format required - Create a Facebook Messenger bot command:
                 module.exports = {
                     name: "commandname",
                     description: "คำอธิบายภาษาไทย",
@@ -351,12 +351,27 @@ module.exports = {
                     nashPrefix: false,
                     cooldowns: 10,
                     async execute(api, event, args, prefix) {
-                        const { threadID, messageID } = event;
+                        const { threadID, messageID, senderID, mentions = [], body = "" } = event;
+                        
+                        // Ensure mentions is always an array
+                        const mentionList = Array.isArray(mentions) ? mentions : [];
+                        const mentionIds = Object.keys(mentionList);
+                        
+                        // Safe way to get message text
+                        const messageText = body || "";
+                        
+                        // Your command logic here
                         api.sendMessage("ข้อความตอบกลับ", threadID, messageID);
                     }
                 };
                 
-                Return ONLY the JavaScript code, no explanations.
+                IMPORTANT RULES:
+                1. Always destructure event with default values
+                2. Always check if mentions is array before using array methods
+                3. Use mentionIds = Object.keys(mentions || {}) for mention IDs
+                4. Always handle undefined/null values safely
+                5. Use try-catch for any risky operations
+                6. Return ONLY the JavaScript code, no explanations.
             `;
             
             // [MODIFIED] Using the API endpoint requested by the user
@@ -407,6 +422,61 @@ module.exports = {
                 throw new Error("โค้ดที่ AI สร้างไม่มี module.exports");
             }
 
+            // แก้ไขปัญหา mentions.includes และ mentions อื่นๆ ที่เป็นไปได้
+            generatedCode = generatedCode.replace(
+                /mentions\.includes\(/g, 
+                '(Array.isArray(mentions) ? mentions : []).includes('
+            );
+            
+            generatedCode = generatedCode.replace(
+                /mentions\.length/g, 
+                '(Array.isArray(mentions) ? mentions.length : 0)'
+            );
+            
+            generatedCode = generatedCode.replace(
+                /mentions\.map\(/g, 
+                '(Array.isArray(mentions) ? mentions : []).map('
+            );
+            
+            generatedCode = generatedCode.replace(
+                /mentions\.filter\(/g, 
+                '(Array.isArray(mentions) ? mentions : []).filter('
+            );
+            
+            generatedCode = generatedCode.replace(
+                /mentions\.forEach\(/g, 
+                '(Array.isArray(mentions) ? mentions : []).forEach('
+            );
+
+            // แก้ไขการใช้ Object.keys(mentions) ให้ปลอดภัย
+            generatedCode = generatedCode.replace(
+                /Object\.keys\(mentions\)/g, 
+                'Object.keys(mentions || {})'
+            );
+
+            // เพิ่มการตรวจสอบ event properties ที่สำคัญ
+            if (!generatedCode.includes('const { threadID, messageID') && generatedCode.includes('threadID')) {
+                generatedCode = generatedCode.replace(
+                    /async execute\(api, event, args, prefix\) \{/,
+                    `async execute(api, event, args, prefix) {
+        const { threadID, messageID, senderID, mentions = [], body = "" } = event;`
+                );
+            }
+
+            // เพิ่ม error handling wrapper ให้กับฟังก์ชัน execute
+            if (!generatedCode.includes('try {') && !generatedCode.includes('catch')) {
+                generatedCode = generatedCode.replace(
+                    /(async execute\(api, event, args, prefix\) \{[\s\S]*?)(api\.sendMessage[\s\S]*?)\s*\}/,
+                    `$1try {
+            $2
+        } catch (error) {
+            console.error('[Generated Command Error]:', error);
+            api.sendMessage(\`❌ เกิดข้อผิดพลาด: \${error.message}\`, threadID, messageID);
+        }
+    }`
+                );
+            }
+
             const nameMatch = generatedCode.match(/name:\s*["']([^"']+)["']/);
             if (!nameMatch || !nameMatch[1]) {
                 throw new Error("ไม่สามารถหาชื่อคำสั่ง (name) จากโค้ดที่ AI สร้างได้");
@@ -438,10 +508,11 @@ module.exports = {
                 console.log("⚠️ global.reloadGeneratedCommands function not available");
             }
 
-            const successMessage = `✅ สร้างคำสั่งใหม่สำเร็จแล้ว!\n\n` +
+            const successMessage = `✅ สร้างคำสั่งใหม่สำเร็จแล้ว! (v2.4.1 - ปรับปรุงความเสถียร)\n\n` +
                                  `🎯 ชื่อคำสั่ง: ${commandName}\n` +
                                  `🚀 คุณสามารถเริ่มใช้งานได้ทันทีด้วย: ${prefix}${commandName}\n` +
-                                 `⏰ คำสั่งนี้จะถูกลบใน ${CONFIG.COMMAND_EXPIRY_HOURS} ชั่วโมง\n\n` +
+                                 `⏰ คำสั่งนี้จะถูกลบใน ${CONFIG.COMMAND_EXPIRY_HOURS} ชั่วโมง\n` +
+                                 `🛡️ โค้ดถูกปรับปรุงให้มีความเสถียรและจัดการข้อผิดพลาดอัตโนมัติ\n\n` +
                                  `🧠 AI จะจดจำคำขอนี้เพื่อช่วยสร้างคำสั่งถัดไปที่เหมาะสมขึ้น!\n\n` +
                                  `💡 ดูรายการคำสั่งทั้งหมดด้วย: ${prefix}สร้างคำสั่ง รายการ`;
             await api.sendMessage(successMessage, threadID, messageID);

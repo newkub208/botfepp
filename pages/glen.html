@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>พาแนลฟีฟายมีหลายฟังก์ชั่นนิยม</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #444;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            display: inline-block;
+        }
+
+        nav a:hover {
+            background-color: #555;
+        }
+
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .function-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .function-list li {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .function-list li:hover {
+            background-color: #eee;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #login-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            width: 300px;
+        }
+
+        .close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>พาแนลฟีฟายมีหลายฟังก์ชั่นนิยม</h1>
+    </header>
+
+    <nav>
+        <a href="#">หน้าหลัก</a>
+        <a href="#">ฟังก์ชั่น</a>
+        <a href="#">เกี่ยวกับเรา</a>
+        <a href="#" onclick="openLoginModal()">เข้าสู่ระบบ</a>
+    </nav>
+
+    <div class="container">
+        <h2>ฟังก์ชั่นยอดนิยม</h2>
+        <ul class="function-list">
+            <li>ปรับแต่งตัวละคร</li>
+            <li>เพิ่มความสามารถ</li>
+            <li>ปลดล็อคไอเทม</li>
+            <li>รับรางวัลพิเศษ</li>
+            <li>และอื่นๆ อีกมากมาย</li>
+        </ul>
+    </div>
+
+    <footer>
+        &copy; 2024 พาแนลฟีฟาย. สงวนลิขสิทธิ์.
+    </footer>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            <h2>เข้าสู่ระบบ</h2>
+            <form>
+                <label for="username">ชื่อผู้ใช้:</label><br>
+                <input type="text" id="username" name="username"><br><br>
+                <label for="password">รหัสผ่าน:</label><br>
+                <input type="password" id="password" name="password"><br><br>
+                <input type="submit" value="เข้าสู่ระบบ">
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openLoginModal() {
+            document.getElementById("login-modal").style.display = "block";
+        }
+
+        function closeLoginModal() {
+            document.getElementById("login-modal").style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById("login-modal")) {
+                closeLoginModal();
+            }
+        }
+    </script>
+</body>
+</html>

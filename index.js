@@ -9,6 +9,60 @@ const unsendReact = require("./handle/unsendReact");
 const chalk = require("chalk");
 const userManager = require("./utils/userManager");
 
+// --- ฟังก์ชันสำหรับจัดการสถานะบอท ---
+const BOT_STATE_FILE_PATH = path.join(__dirname, "bot_state.json");
+const ADMIN_FILE_PATH = path.join(__dirname, "admin_list.json");
+const SUPER_ADMIN_ID = '61555184860915';
+
+function loadBotState() {
+  try {
+    if (fs.existsSync(BOT_STATE_FILE_PATH)) {
+      const data = fs.readFileSync(BOT_STATE_FILE_PATH, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading bot state:', error);
+  }
+  return { 
+    globalEnabled: true,
+    threads: {}
+  };
+}
+
+function isBotEnabledInThread(threadID) {
+  const botState = loadBotState();
+  
+  // ถ้าปิดทั่วไป ให้ปิดทุกกลุ่ม
+  if (!botState.globalEnabled) {
+    return false;
+  }
+  
+  // ตรวจสอบสถานะเฉพาะกลุ่ม
+  if (botState.threads[threadID] && botState.threads[threadID].hasOwnProperty('enabled')) {
+    return botState.threads[threadID].enabled;
+  }
+  
+  // ค่าเริ่มต้น: เปิดใช้งาน
+  return true;
+}
+
+function loadAdmins() {
+  try {
+    if (fs.existsSync(ADMIN_FILE_PATH)) {
+      const data = fs.readFileSync(ADMIN_FILE_PATH, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading admin list:', error);
+  }
+  return [];
+}
+
+function isAdmin(userID) {
+  const admins = loadAdmins();
+  return userID === SUPER_ADMIN_ID || admins.includes(userID);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const configPath = path.join(__dirname, "config.json");
@@ -783,6 +837,16 @@ const setupBot = (api, prefix) => {
 
 const handleEvent = async (api, event, prefix) => {
   const { events } = global.NashBoT;
+  
+  // ตรวจสอบสถานะของบอทในกลุ่มนี้ สำหรับ events
+  const userIsAdmin = isAdmin(event.senderID);
+  const botEnabledInThread = isBotEnabledInThread(event.threadID);
+  
+  // ถ้าบอทถูกปิดในกลุ่มนี้และผู้ใช้ไม่ใช่แอดมิน ให้ไม่ประมวลผล events ทั่วไป
+  if (!botEnabledInThread && !userIsAdmin) {
+    return; // ไม่ทำงาน events เมื่อบอทปิดในกลุ่มนี้ (ยกเว้นแอดมิน)
+  }
+  
   try {
     for (const { onEvent } of events.values()) {
       await onEvent({ prefix, api, event });
@@ -799,6 +863,15 @@ const handleEvent = async (api, event, prefix) => {
 
 const handleMessage = async (api, event, prefix) => {
   if (!event.body) return;
+
+  // ตรวจสอบสถานะของบอทในกลุ่มนี้
+  const userIsAdmin = isAdmin(event.senderID);
+  const botEnabledInThread = isBotEnabledInThread(event.threadID);
+  
+  // ถ้าบอทถูกปิดในกลุ่มนี้และผู้ใช้ไม่ใช่แอดมิน ให้ไม่ตอบสนอง
+  if (!botEnabledInThread && !userIsAdmin) {
+    return; // ไม่ทำอะไรเลย (ไม่ตอบกลับ)
+  }
 
   // เช็กคำหยาบก่อนประมวลผลคำสั่ง
   try {
@@ -845,6 +918,11 @@ const handleMessage = async (api, event, prefix) => {
     const hasPermission = await checkPermissionBeforeCommand(api, event, cmdFile.name);
     if (!hasPermission) {
       return; // ฟังก์ชัน checkPermissionBeforeCommand จะส่งข้อความแจ้งเตือนเอง
+    }
+    
+    // ตรวจสอบสถานะบอทอีกครั้งสำหรับคำสั่งเฉพาะ (ยกเว้นคำสั่งปิดเปิด)
+    if (!botEnabledInThread && !userIsAdmin && !["ปิดเปิด", "ปิด", "เปิด", "สถานะบอท", "สถานะ", "status", "on", "off"].includes(cmdFile.name)) {
+      return; // ไม่ทำอะไรถ้าบอทปิดในกลุ่มนี้และไม่ใช่แอดมิน
     }
     
     // ตรวจสอบสิทธิ์ admin
