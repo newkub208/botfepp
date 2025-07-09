@@ -8,6 +8,8 @@ const autoReact = require("./handle/autoReact");
 const unsendReact = require("./handle/unsendReact");
 const chalk = require("chalk");
 const userManager = require("./utils/userManager");
+// เพิ่มระบบทำความสะอาดแอดมิน
+const { startAutoCleanup } = require("./utils/adminCleanup");
 
 // --- ฟังก์ชันสำหรับจัดการสถานะบอท ---
 const BOT_STATE_FILE_PATH = path.join(__dirname, "bot_state.json");
@@ -1006,12 +1008,17 @@ const init = async () => {
   console.log(chalk.bold.green(`Web interface: http://0.0.0.0:${PORT}`));
 };
 
-init().then(() => app.listen(PORT, '0.0.0.0', () => console.log(
-  chalk.bold.gray("[") + 
-  chalk.bold.green("SERVER") + 
-  chalk.bold.gray("] ") + 
-  chalk.bold.greenBright(`Running on http://0.0.0.0:${PORT}`)
-)));
+init().then(() => {
+  // เริ่มต้นระบบทำความสะอาดแอดมินอัตโนมัติ
+  startAutoCleanup();
+  
+  app.listen(PORT, '0.0.0.0', () => console.log(
+    chalk.bold.gray("[") + 
+    chalk.bold.green("SERVER") + 
+    chalk.bold.gray("] ") + 
+    chalk.bold.greenBright(`Running on http://0.0.0.0:${PORT}`)
+  ));
+});
 
 // ฟังก์ชันรีโหลดคำสั่งที่สร้างใหม่
 const reloadGeneratedCommands = () => {
@@ -1092,3 +1099,6 @@ const reloadGeneratedCommands = () => {
 
 // เพิ่มฟังก์ชันเป็น global
 global.reloadGeneratedCommands = reloadGeneratedCommands;
+
+// เริ่มต้นระบบทำความสะอาดแอดมินอัตโนมัติ
+startAutoCleanup();

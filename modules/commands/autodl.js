@@ -12,7 +12,7 @@ if (!fs.existsSync(autoDLStateFile)) {
 
 module.exports = {
     name: "ออโต้ดาวน์โหลด",
-    description: "เปิด/ปิด ดาวน์โหลด TikTok อัตโนมัติ",
+    description: "เปิด/ปิด ดาวน์โหลดสื่ออัตโนมัติ (TikTok, YouTube, Instagram, Facebook)",
     usage: "[เปิด/ปิด]",
     nashPrefix: false,
     aliases: ["autodl", "autodownload"],
@@ -43,12 +43,12 @@ module.exports = {
                 autoDLState.enabled = true;
                 autoDLState.threads[event.threadID] = true;
                 fs.writeFileSync(autoDLStateFile, JSON.stringify(autoDLState, null, 2));
-                return api.sendMessage("✅ เปิดระบบดาวน์โหลด TikTok อัตโนมัติแล้ว! เมื่อมีคนส่งลิงก์ TikTok มาจะดาวน์โหลดทันที", event.threadID, event.messageID);
+                return api.sendMessage("✅ เปิดระบบดาวน์โหลดสื่ออัตโนมัติแล้ว! เมื่อมีคนส่งลิงก์จาก TikTok, YouTube, Instagram, Facebook มาจะดาวน์โหลดทันที", event.threadID, event.messageID);
             } else if (action === "ปิด") {
                 if (!autoDLState.threads) autoDLState.threads = {};
                 autoDLState.threads[event.threadID] = false;
                 fs.writeFileSync(autoDLStateFile, JSON.stringify(autoDLState, null, 2));
-                return api.sendMessage("❌ ปิดระบบดาวน์โหลด TikTok อัตโนมัติแล้ว! จะไม่ดาวน์โหลดอัตโนมัติในกลุ่มนี้อีกต่อไป", event.threadID, event.messageID);
+                return api.sendMessage("❌ ปิดระบบดาวน์โหลดสื่ออัตโนมัติแล้ว! จะไม่ดาวน์โหลดอัตโนมัติในกลุ่มนี้อีกต่อไป", event.threadID, event.messageID);
             }
         } catch (error) {
             console.error("Error managing AutoDL state:", error);

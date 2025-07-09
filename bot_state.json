@@ -1,7 +1,24 @@
 {
   "globalEnabled": true,
-  "threads": {},
-  "enabled": true,
+  "threads": {
+    "26817473897852199": {
+      "enabled": true,
+      "disabledAt": "2025-07-09T11:46:17.920Z",
+      "disabledBy": "61555184860915",
+      "enabledAt": "2025-07-09T11:52:10.037Z",
+      "enabledBy": "61555184860915"
+    },
+    "9927453133974492": {
+      "enabled": true,
+      "disabledAt": "2025-07-09T11:52:38.242Z",
+      "disabledBy": "61574221880222",
+      "enabledAt": "2025-07-09T11:53:13.607Z",
+      "enabledBy": "61574221880222"
+    }
+  },
+  "enabled": false,
   "enabledAt": "2025-07-09T05:52:59.942Z",
-  "enabledBy": "61555184860915"
+  "enabledBy": "61555184860915",
+  "disabledAt": "2025-07-09T06:03:51.486Z",
+  "disabledBy": "61555184860915"
 }

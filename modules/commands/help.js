@@ -27,7 +27,7 @@ module.exports = {
         }
       }
 
-      let helpMessage = `🤖 𝗄ำสั่ง𝗡𝗔𝗦𝗛 𝗕𝗢𝗧 🤖\n`;
+      let helpMessage = `🤖 BOT Cs 🤖\n`;
       helpMessage += `════════════════════\n\n`;
 
       const prefixCommands = commands.filter(cmd => cmd.nashPrefix);
