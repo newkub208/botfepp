@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Special Message For You</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Baloo 2', cursive;
+            overflow: hidden;
+        }
+        .heart-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .heart {
+            position: absolute;
+            bottom: -50px;
+            font-size: 1.5rem;
+            opacity: 0;
+            animation: flyUp 12s linear infinite;
+            color: rgba(255, 105, 180, 0.7);
+        }
+        @keyframes flyUp {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-120vh) translateX(calc(50px * (2 * random() - 1))) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pop-in { animation: popIn 0.6s ease-out forwards; }
+        .animate-pulse-btn { animation: pulse 2s infinite; }
+        .card-container { z-index: 10; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-rose-100 via-pink-100 to-purple-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="heart-container" id="heart-container"></div>
+
+    <!-- Start View -->
+    <div id="start-view" class="card-container text-center">
+        <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl p-8 transform hover:scale-105 transition-transform duration-500">
+            <!-- WORKING GIF -->
+            <img src="https://media1.tenor.com/m/gUiu1zyxfzYAAAAC/bear-love-bear-kisses.gif" 
+                 onerror="this.onerror=null;this.src='https://placehold.co/200x200/fecdd3/4c1d2f?text=Love+Letter';" 
+                 alt="จดหมายรัก" class="w-40 mx-auto mb-4">
+            <h1 class="text-3xl font-bold text-gray-700 mb-4">You've got a message!</h1>
+            <button id="start-btn" class="bg-pink-500 text-white font-bold px-10 py-4 rounded-full shadow-lg hover:bg-pink-600 transition-all duration-300 ease-in-out text-xl animate-pulse-btn">
+                Open It ✨
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden card-container bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-10 text-center max-w-md w-full">
+        
+        <!-- Question View -->
+        <div id="question-view">
+            <!-- NEW GIF FOR SHY BEAR -->
+            <img id="question-gif" src="https://media.tenor.com/Duj-4B_t-aYAAAAi/peach-goma.gif" 
+                 onerror="this.onerror=null;this.src='https://placehold.co/256x256/fecdd3/4c1d2f?text=Be+Mine?';"
+                 alt="หมีเขินอาย" class="w-48 h-48 mx-auto rounded-full object-cover shadow-lg mb-4 transition-all duration-300">
+            <h1 id="question-text" class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Will you be mine?</h1>
+            <div class="flex justify-center items-center gap-4">
+                <button id="yes-btn" class="bg-green-500 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:bg-green-600 transition-all duration-300 ease-in-out transform hover:scale-110">
+                    Yes
+                </button>
+                <button id="no-btn" class="bg-red-500 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:bg-red-600 transition-all duration-300 ease-in-out transform hover:scale-110">
+                    No
+                </button>
+            </div>
+        </div>
+
+        <!-- Success View -->
+        <div id="success-view" class="hidden">
+            <!-- WORKING GIF -->
+            <img src="https://media1.tenor.com/m/B-1_n1e-3Z4AAAAC/peach-goma-goma.gif" 
+                 onerror="this.onerror=null;this.src='https://placehold.co/256x256/fecdd3/4c1d2f?text=YAY!!!';"
+                 alt="หมีกอดกัน" class="w-48 h-48 mx-auto rounded-full object-cover shadow-lg mb-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-pink-600 animate-pulse">WOOHOO! I love you so much! 💕</h2>
+            <p class="text-gray-600 mt-2">This is the beginning of our story!</p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const startView = document.getElementById('start-view');
+        const startBtn = document.getElementById('start-btn');
+        const mainContent = document.getElementById('main-content');
+        const questionView = document.getElementById('question-view');
+        const successView = document.getElementById('success-view');
+        const yesBtn = document.getElementById('yes-btn');
+        const noBtn = document.getElementById('no-btn');
+        const questionGif = document.getElementById('question-gif');
+        const heartContainer = document.getElementById('heart-container');
+
+        // --- Cute GIFs and Messages for "No" button ---
+        const noMessages = [ "Are you sure?", "Please reconsider", "I'll be sad :(", "But... why?", "My heart is breaking", "Just one chance?", "Don't do this to me", "I'm begging you!" ];
+        const sadGifs = [
+            "https://media1.tenor.com/m/k2b9M4i-pYgAAAAC/sad-goma.gif", // Crying
+            "https://media1.tenor.com/m/DL2-O3_s2cAAAAAC/goma-peach.gif", // Sobbing
+            "https://media1.tenor.com/m/2c8S_L4K_G4AAAAC/peach-and-goma-sad.gif", // Pleading
+            "https://media1.tenor.com/m/A1l_M0-30i4AAAAC/peach-and-goma-peach-goma-sad.gif" // Heartbroken
+        ];
+        let noClickCount = 0;
+
+        // --- Music: "Can't Help Falling in Love" Melody ---
+        const synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1 }
+        }).toDestination();
+        synth.volume.value = -6;
+
+        const melody = [
+            ['C4', '4n'], ['E4', '4n'], ['G4', '2n'], ['G4', '8n'], ['F4', '8n'], ['E4', '4n'], ['D4', '2n'],
+            ['C4', '4n'], ['E4', '4n'], ['G4', '2n'], ['G4', '8n'], ['A4', '8n'], ['G4', '4n'], ['C5', '2n'],
+            ['B4', '4n'], ['A4', '4n'], ['G4', '2n'], ['F4', '4n'], ['E4', '4n'], ['D4', '2n'], ['C4', '1n']
+        ];
+        
+        const musicSequence = new Tone.Sequence((time, note) => {
+            synth.triggerAttackRelease(note, '8n', time);
+        }, melody, '4n');
+        musicSequence.loop = true;
+
+        // --- Floating Hearts ---
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.style.left = `${Math.random() * 100}vw`;
+            heart.style.animationDuration = `${Math.random() * 5 + 7}s`;
+            heart.style.animationDelay = `${Math.random() * 5}s`;
+            heart.innerHTML = ['❤️', '💖', '💕'][Math.floor(Math.random() * 3)];
+            heartContainer.appendChild(heart);
+            setTimeout(() => heart.remove(), 12000);
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', async () => {
+            await Tone.start();
+            Tone.Transport.start();
+            musicSequence.start(0);
+            startView.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+            mainContent.classList.add('animate-pop-in');
+            setInterval(createHeart, 300);
+        });
+
+        yesBtn.addEventListener('click', () => {
+            questionView.classList.add('hidden');
+            successView.classList.remove('hidden');
+            synth.releaseAll();
+            synth.triggerAttackRelease(['C5', 'E5', 'G5'], '1n');
+        });
+
+        noBtn.addEventListener('click', () => {
+            noClickCount++;
+            const yesBtnStyle = window.getComputedStyle(yesBtn);
+            const currentFontSize = parseFloat(yesBtnStyle.fontSize);
+            yesBtn.style.fontSize = `${currentFontSize + 8}px`;
+            const currentPaddingX = parseFloat(yesBtnStyle.paddingLeft);
+            const currentPaddingY = parseFloat(yesBtnStyle.paddingTop);
+            yesBtn.style.padding = `${currentPaddingY + 5}px ${currentPaddingX + 12}px`;
+            noBtn.textContent = noMessages[noClickCount % noMessages.length];
+            questionGif.src = sadGifs[noClickCount % sadGifs.length];
+        });
+    </script>
+</body>
+</html>
+

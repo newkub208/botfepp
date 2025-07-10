@@ -6,9 +6,71 @@ const puppeteer = require('puppeteer');
 const { exec } = require('child_process');
 const webServerManager = require('../../utils/webServerManager');
 
+// Global server instance to prevent multiple servers
+let globalServer = null;
+let globalApp = null;
+
+// Initialize static server on port 1437 when command loads
+const initializeStaticServer = () => {
+  // Check if server already exists
+  if (globalServer) {
+    return globalServer;
+  }
+
+  globalApp = express();
+  const port = 1437;
+
+  // Serve static files from iove directory
+  globalApp.use('/iove', express.static(path.join(__dirname, '../../iove')));
+  globalApp.use(express.static(path.join(__dirname, '../../iove')));
+
+  // Default route
+  globalApp.get('/', (req, res) => {
+    res.send(`
+      <html>
+        <head>
+          <title>LoveYoyBot Web Server</title>
+          <meta charset="utf-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <h1 style="color: white;">🌐 LoveYoyBot Web Server</h1>
+          <p style="color: white; font-size: 18px;">พอร์ต 1437 พร้อมใช้งาน</p>
+          <p style="color: white;">ใช้คำสั่ง "รันเว็บ" เพื่อสร้างเว็บไซต์</p>
+        </body>
+      </html>
+    `);
+  });
+
+  try {
+    globalServer = globalApp.listen(port, '0.0.0.0', () => {
+      console.log(`[WEB SERVER] LoveYoyBot Web Server running on port ${port}`);
+    });
+
+    globalServer.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.log(`[WEB SERVER] Port ${port} is already in use`);
+        globalServer = null;
+        globalApp = null;
+      }
+    });
+
+    return globalServer;
+  } catch (error) {
+    console.error('[WEB SERVER] Error starting server:', error);
+    globalServer = null;
+    globalApp = null;
+    return null;
+  }
+};
+
+// Initialize server when module loads (only if not already running)
+setTimeout(() => {
+  initializeStaticServer();
+}, 1000);
+
 module.exports = {
   name: 'รันเว็บ',
-  description: 'รันเว็บไซต์จาก HTML ที่วางใน Pastebin บนพอร์ต 6666 มีอายุ 1 วัน',
+  description: 'รันเว็บไซต์จาก HTML ที่วางใน Pastebin บนพอร์ต 1437 มีอายุ 1 วัน',
   usage: 'รันเว็บ [pastebin_url|สถานะ|หยุด|ช่วยเหลือ] (ใช้ได้ทั้งมี / และไม่มี)',
   nashPrefix: false,
   aliases: ['runweb', 'webrun', '/รันเว็บ', '/runweb', '/webrun'],
@@ -44,24 +106,24 @@ module.exports = {
 🚀 รันเว็บ https://pastebin.com/abc123
 📊 /รันเว็บ สถานะ
 📋 รันเว็บ รายการ
-🗑️ /รันเว็บ ลบ cosmic1234
+🗑️ /รันเว็บ ลบ candy
 ⏹️ รันเว็บ หยุด
 
 🎯 ตัวอย่าง URL ที่ได้:
 ────────────────────────────────────────
-http://menu.panelaimbot.com:6666/vip/cosmic1234.html
-http://menu.panelaimbot.com:6666/premium/stellar5678.html
-http://menu.panelaimbot.com:6666/elite/quantum9012.html
+http://menu.panelaimbot.com:1437/candy.html
+http://menu.panelaimbot.com:1437/star.html
+http://menu.panelaimbot.com:1437/love.html
 
 ⚙️ คุณสมบัติระดับ Premium:
 ────────────────────────────────────────
 ✨ URL สวยและเฉพาะตัว
-🚀 รันได้ทันที บนพอร์ต 6666
+🚀 รันได้ทันที บนพอร์ต 1437
 📸 ภาพตัวอย่างอัตโนมัติ HD
 ⏰ อายุ 24 ชั่วโมง
 🔄 หยุดอัตโนมัติ
 💎 รองรับ HTML, CSS, JavaScript
-🌟 หมวดหมู่ VIP, Premium, Elite
+📁 เก็บไฟล์ในโฟลเดอร์ iove
 📋 รายการเว็บไซต์และการหยุดเฉพาะ
 🗑️ หยุดแยกตามชื่อไฟล์
 🔧 ใช้ได้ทั้งมี / และไม่มี prefix
@@ -85,9 +147,9 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
           const minutesRemaining = Math.floor((serverInfo.remaining % (1000 * 60 * 60)) / (1000 * 60));
           
           statusMessage += '🟢 เซิร์ฟเวอร์: กำลังทำงาน\n';
-          statusMessage += `� ชื่อเว็บ: ${serverInfo.websiteName || 'ไม่ระบุ'}\n`;
-          statusMessage += `📁 หมวด: ${(serverInfo.category || 'general').toUpperCase()}\n`;
-          statusMessage += `�🌐 URL: ${serverInfo.url}\n`;
+          statusMessage += `🎯 ชื่อเว็บ: ${serverInfo.websiteName || 'ไม่ระบุ'}\n`;
+          statusMessage += `📁 เก็บที่: iove/\n`;
+          statusMessage += `🌐 URL: ${serverInfo.url}\n`;
           statusMessage += `🕐 เริ่มต้น: ${serverInfo.startTime.toLocaleString('th-TH')}\n`;
           statusMessage += `⏰ เหลือเวลา: ${hoursRemaining} ชั่วโมง ${minutesRemaining} นาที\n\n`;
           statusMessage += `💡 ใช้คำสั่ง \`รันเว็บ หยุด\` หรือ \`/รันเว็บ หยุด\` เพื่อหยุดเซิร์ฟเวอร์`;
@@ -136,7 +198,7 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
           const minutesRemaining = Math.floor((serverInfo.remaining % (1000 * 60 * 60)) / (1000 * 60));
           
           listMessage += `${count}. 🎯 ${serverInfo.websiteName}\n`;
-          listMessage += `   📁 หมวด: ${(serverInfo.category || 'general').toUpperCase()}\n`;
+          listMessage += `   📁 เก็บที่: iove/\n`;
           listMessage += `   🌐 ${serverInfo.url}\n`;
           listMessage += `   ⏰ เหลือ: ${hoursRemaining}ชม ${minutesRemaining}นาที\n\n`;
           count++;
@@ -160,7 +222,7 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
       if (args.length < 2) {
         await api.sendMessage(
           '❌ กรุณาระบุชื่อไฟล์ที่ต้องการหยุด\n\n' +
-          '📝 ตัวอย่าง: รันเว็บ ลบ cosmic1234\n' +
+          '📝 ตัวอย่าง: รันเว็บ ลบ candy\n' +
           '📋 ดูรายการ: รันเว็บ รายการ',
           threadID, messageID
         );
@@ -194,11 +256,17 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
       // หยุดเว็บไซต์เฉพาะ
       const success = webServerManager.removeServer(foundKey);
       if (success) {
+        // Clean up HTML file when manually stopped
+        if (foundServer.htmlFilePath && fs.existsSync(foundServer.htmlFilePath)) {
+          fs.unlinkSync(foundServer.htmlFilePath);
+        }
+        
         await api.sendMessage(
           `✅ หยุดเว็บไซต์สำเร็จ!\n\n` +
           `🗑️ ไฟล์: ${targetFileName}\n` +
-          `📁 หมวด: ${(foundServer.category || 'general').toUpperCase()}\n` +
-          `🌐 URL: ${foundServer.url}\n\n` +
+          `📁 เก็บที่: iove/\n` +
+          `🌐 URL: ${foundServer.url}\n` +
+          `🗑️ ไฟล์ HTML ถูกลบแล้ว\n\n` +
           `📋 ดูรายการที่เหลือ: รันเว็บ รายการ`,
           threadID, messageID
         );
@@ -219,6 +287,11 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
 
       // หยุดเซิร์ฟเวอร์ทั้งหมดก่อน
       for (const [key, serverData] of allServers.entries()) {
+        // Clean up HTML files
+        if (serverData.htmlFilePath && fs.existsSync(serverData.htmlFilePath)) {
+          fs.unlinkSync(serverData.htmlFilePath);
+        }
+        
         const success = webServerManager.removeServer(key);
         if (success) stoppedCount++;
       }
@@ -227,7 +300,8 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
         await api.sendMessage(
           `✅ หยุดเซิร์ฟเวอร์เว็บสำเร็จ!\n\n` +
           `🔴 เซิร์ฟเวอร์ที่หยุด: ${stoppedCount} ตัว\n` +
-          `🌐 พอร์ต 6666: ว่าง\n\n` +
+          `🌐 พอร์ต 1437: ว่าง\n` +
+          `🗑️ ไฟล์ HTML ทั้งหมดถูกลบแล้ว\n\n` +
           `💡 ใช้คำสั่ง \`รันเว็บ [pastebin_url]\` เพื่อเริ่มเซิร์ฟเวอร์ใหม่`,
           threadID, messageID
         );
@@ -236,10 +310,10 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
 
       await api.sendMessage('🔄 กำลังค้นหาและหยุดเซิร์ฟเวอร์...', threadID, messageID);
       
-      exec('lsof -ti:6666', (error, stdout, stderr) => {
+      exec('lsof -ti:1437', (error, stdout, stderr) => {
         if (error || !stdout.trim()) {
           api.sendMessage(
-            '💡 ไม่พบเซิร์ฟเวอร์ที่ทำงานบนพอร์ต 6666\n' +
+            '💡 ไม่พบเซิร์ฟเวอร์ที่ทำงานบนพอร์ต 1437\n' +
             'เซิร์ฟเวอร์อาจหยุดทำงานแล้ว',
             threadID, messageID
           );
@@ -259,7 +333,7 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
                 api.sendMessage(
                   '✅ หยุดเซิร์ฟเวอร์เว็บสำเร็จ!\n\n' +
                   '🔴 เซิร์ฟเวอร์: หยุดทำงาน\n' +
-                  '🌐 พอร์ต 6666: ว่าง',
+                  '🌐 พอร์ต 1437: ว่าง',
                   threadID
                 );
               }
@@ -291,23 +365,28 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
       const pastebinId = pastebinUrl.split('/').pop().split('?')[0];
       const rawUrl = `https://pastebin.com/raw/${pastebinId}`;
       
-      // Generate unique website name
+      // Generate unique website name with longer cute names (7+ characters)
       const websiteNames = [
-        'cosmic', 'stellar', 'quantum', 'nexus', 'aurora', 'zenith', 'phoenix', 'vortex',
-        'eclipse', 'infinity', 'prism', 'matrix', 'cyber', 'neon', 'plasma', 'crystal',
-        'diamond', 'emerald', 'sapphire', 'ruby', 'pearl', 'gold', 'silver', 'platinum',
-        'thunder', 'lightning', 'storm', 'blaze', 'frost', 'shadow', 'light', 'mystic',
-        'legend', 'epic', 'royal', 'supreme', 'ultra', 'mega', 'hyper', 'super',
-        'alpha', 'beta', 'gamma', 'delta', 'omega', 'sigma', 'theta', 'lambda'
+        'sweetlove', 'honeybee', 'sugarplum', 'creamcake', 'berrysweet', 'peachbaby', 'cherrybomb', 'bubblegum',
+        'fluffycat', 'starlight', 'moonbeam', 'sunshine', 'flower12', 'rosepetal', 'lilywhite', 'daisychain',
+        'cookiemonster', 'cakepop', 'sweetie', 'cuteness', 'lovebug', 'joyfully', 'happiness', 'smiley',
+        'magical', 'dreamer', 'wishful', 'heartbeat', 'kissable', 'hugable', 'bunnylove', 'kittypaw',
+        'angelwings', 'rainbow', 'butterfly', 'unicorn', 'princess', 'fairytale', 'sparkles', 'glitter',
+        'cupcake', 'muffin', 'brownie', 'chocolate', 'vanilla', 'strawberry', 'blueberry', 'raspberry',
+        'sunflower', 'lavender', 'jasmine', 'orchid', 'magnolia', 'gardenia', 'petunia', 'begonia',
+        'beautiful', 'gorgeous', 'amazing', 'wonderful', 'fantastic', 'marvelous', 'stunning', 'brilliant'
       ];
       
-      const categories = ['vip', 'premium', 'pro', 'elite', 'deluxe', 'studio', 'lab', 'space'];
+      const categories = ['premium', 'deluxe', 'studio', 'gallery', 'palace', 'mansion', 'castle', 'paradise'];
       const randomName = websiteNames[Math.floor(Math.random() * websiteNames.length)];
       const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      const timestamp = Date.now().toString().slice(-4);
       
-      const websiteName = `${randomName}${timestamp}`;
-      const websitePath = `/${randomCategory}/${websiteName}.html`;
+      const websiteName = `${randomName}`;
+      const websitePath = `/${websiteName}.html`;
+      
+      // Create HTML file directory in iove folder
+      const htmlDir = path.join(__dirname, '../../iove');
+      const htmlFilePath = path.join(htmlDir, `${websiteName}.html`);
       
       // Fetch HTML content
       const response = await axios.get(rawUrl, {
@@ -329,93 +408,95 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
         return;
       }
 
+      // Create directory if it doesn't exist and save HTML file
+      if (!fs.existsSync(htmlDir)) {
+        fs.mkdirSync(htmlDir, { recursive: true });
+      }
+      
+      // Save HTML content to file
+      fs.writeFileSync(htmlFilePath, htmlContent, 'utf8');
+
       // Check if server is already running for this thread
       if (webServerManager.hasServer(serverKey)) {
         webServerManager.removeServer(serverKey);
-        await api.sendMessage('🔄 หยุดเซิร์ฟเวอร์เก่าและเริ่มใหม่...', threadID);
+        await api.sendMessage('🔄 หยุดเว็บไซต์เก่าและเริ่มใหม่...', threadID);
       }
 
-      // Create Express app
-      const app = express();
-      const port = 6666;
-
-      // Serve the HTML content on custom path
-      app.get(websitePath, (req, res) => {
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(htmlContent);
-      });
-
-      // Redirect root to custom path
-      app.get('/', (req, res) => {
-        res.redirect(websitePath);
-      });
-
-      // Serve static files if needed
-      app.use('/static', express.static(path.join(__dirname, '../../public')));
-
-      // Start server
-      const server = app.listen(port, '0.0.0.0', async () => {
-        const baseUrl = `http://menu.panelaimbot.com:${port}`;
-        const fullUrl = `${baseUrl}${websitePath}`;
-        
-        // Take screenshot for preview first
-        let screenshotSuccess = false;
-        try {
-          await takeScreenshot(fullUrl, threadID, messageID, api, websiteName, randomCategory, pastebinUrl);
-          screenshotSuccess = true;
-        } catch (screenshotError) {
-          console.error('Screenshot error:', screenshotError);
-          screenshotSuccess = false;
-        }
-
-        // Send success message (only once)
-        if (!screenshotSuccess) {
+      // Use global server instead of creating new one
+      if (!globalServer || !globalApp) {
+        await api.sendMessage(
+          '❌ เซิร์ฟเวอร์หลักไม่ทำงาน กำลังเริ่มเซิร์ฟเวอร์ใหม่...',
+          threadID, messageID
+        );
+        globalServer = initializeStaticServer();
+        if (!globalServer) {
           await api.sendMessage(
-            `✅ เว็บไซต์รันสำเร็จ!\n\n` +
-            `🌐 URL: ${fullUrl}\n` +
-            `🎯 ชื่อเว็บ: ${websiteName}\n` +
-            `📁 หมวด: ${randomCategory.toUpperCase()}\n` +
-            `⏰ อายุ: 1 วัน (24 ชั่วโมง)\n` +
-            `📝 จาก: ${pastebinUrl}\n\n` +
-            `📸 ไม่สามารถสร้างภาพตัวอย่างได้ แต่เว็บไซต์ทำงานปกติ`,
+            '❌ ไม่สามารถเริ่มเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง',
             threadID, messageID
           );
+          return;
         }
+        // Wait for server to start
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
-        // Set 24-hour timeout
-        const timeout = setTimeout(() => {
-          webServerManager.removeServer(serverKey);
-          api.sendMessage(
-            `⏰ เว็บไซต์ "${websiteName}" หมดอายุแล้ว (24 ชั่วโมง)\n` +
-            `🌐 URL: ${fullUrl}`,
-            threadID
-          );
-        }, 24 * 60 * 60 * 1000); // 24 hours
-
-        // Store server info
-        webServerManager.addServer(serverKey, {
-          server: server,
-          timeout: timeout,
-          url: fullUrl,
-          websiteName: websiteName,
-          category: randomCategory,
-          startTime: new Date()
-        });
+      // Add dynamic route for this website to existing app
+      globalApp.get(websitePath, (req, res) => {
+        res.sendFile(htmlFilePath);
       });
 
-      server.on('error', (error) => {
-        if (error.code === 'EADDRINUSE') {
-          api.sendMessage(
-            `❌ พอร์ต ${port} ถูกใช้งานอยู่\n` +
-            `🔄 ใช้คำสั่ง \`รันเว็บ หยุด\` หรือ \`/รันเว็บ หยุด\` แล้วลองใหม่`,
-            threadID, messageID
-          );
-        } else {
-          api.sendMessage(
-            `❌ เกิดข้อผิดพลาดในการรันเซิร์ฟเวอร์: ${error.message}`,
-            threadID, messageID
-          );
+      const baseUrl = `http://menu.panelaimbot.com:1437`;
+      const fullUrl = `${baseUrl}${websitePath}`;
+      
+      // Take screenshot for preview first
+      let screenshotSuccess = false;
+      try {
+        await takeScreenshot(fullUrl, threadID, messageID, api, websiteName, randomCategory, pastebinUrl);
+        screenshotSuccess = true;
+      } catch (screenshotError) {
+        console.error('Screenshot error:', screenshotError);
+        screenshotSuccess = false;
+      }
+
+      // Send success message (only once)
+      if (!screenshotSuccess) {
+        await api.sendMessage(
+          `✅ เว็บไซต์รันสำเร็จ!\n\n` +
+          `🌐 URL: ${fullUrl}\n` +
+          `🎯 ชื่อเว็บ: ${websiteName}\n` +
+          `📁 เก็บที่: iove/\n` +
+          `⏰ อายุ: 1 วัน (24 ชั่วโมง)\n` +
+          `📝 จาก: ${pastebinUrl}\n\n` +
+          `📸 ไม่สามารถสร้างภาพตัวอย่างได้ แต่เว็บไซต์ทำงานปกติ`,
+          threadID, messageID
+        );
+      }
+
+      // Set 24-hour timeout
+      const timeout = setTimeout(() => {
+        webServerManager.removeServer(serverKey);
+        
+        // Clean up HTML file when expired
+        if (fs.existsSync(htmlFilePath)) {
+          fs.unlinkSync(htmlFilePath);
         }
+        
+        api.sendMessage(
+          `⏰ เว็บไซต์ "${websiteName}" หมดอายุแล้ว (24 ชั่วโมง)\n` +
+          `🌐 URL: ${fullUrl}\n` +
+          `🗑️ ไฟล์ HTML ถูกลบแล้ว`,
+          threadID
+        );
+      }, 24 * 60 * 60 * 1000); // 24 hours
+
+      // Store server info
+      webServerManager.addServer(serverKey, {
+        server: globalServer,
+        timeout: timeout,
+        url: fullUrl,
+        websiteName: websiteName,
+        startTime: new Date(),
+        htmlFilePath: htmlFilePath
       });
 
     } catch (error) {
@@ -441,17 +522,15 @@ http://menu.panelaimbot.com:6666/elite/quantum9012.html
 async function takeScreenshot(url, threadID, messageID, api, websiteName, category, pastebinUrl) {
   let browser;
   try {
+    // Launch Puppeteer without a specific executablePath to allow it to find the browser automatically.
+    // This is more portable across different environments.
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/usr/bin/chromium-browser',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
+        '--disable-dev-shm-usage', // Common fix for issues in containerized environments
+        '--disable-gpu' // Often needed in server environments
       ]
     });
 
@@ -483,7 +562,7 @@ async function takeScreenshot(url, threadID, messageID, api, websiteName, catego
       body: `✅ เว็บไซต์รันสำเร็จ!\n\n` +
             `🌐 URL: ${url}\n` +
             `🎯 ชื่อเว็บ: ${websiteName}\n` +
-            `📁 หมวด: ${category.toUpperCase()}\n` +
+            `📁 เก็บที่: iove/\n` +
             `⏰ อายุ: 1 วัน (24 ชั่วโมง)\n` +
             `📝 จาก: ${pastebinUrl}\n\n` +
             `📸 ภาพตัวอย่างเว็บไซต์:`,
@@ -499,7 +578,7 @@ async function takeScreenshot(url, threadID, messageID, api, websiteName, catego
 
   } catch (error) {
     console.error('Screenshot error:', error);
-    throw error;
+    throw error; // Re-throw the error to be caught by the main execute function
   } finally {
     if (browser) {
       await browser.close();
