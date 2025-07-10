@@ -2,8 +2,8 @@
   "globalEnabled": true,
   "threads": {
     "26817473897852199": {
-      "enabled": true,
-      "disabledAt": "2025-07-09T11:46:17.920Z",
+      "enabled": false,
+      "disabledAt": "2025-07-10T04:35:34.161Z",
       "disabledBy": "61555184860915",
       "enabledAt": "2025-07-09T11:52:10.037Z",
       "enabledBy": "61555184860915"

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตัวอย่างเว็บไซต์ - สร้างโดย Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 600px;
+            margin: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 10px;
+            transition: transform 0.3s ease;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            transform: scale(1.05);
+        }
+        
+        .clock {
+            font-size: 1.5rem;
+            margin: 2rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+        
+        .footer {
+            margin-top: 2rem;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 ยินดีต้อนรับ!</h1>
+        <p>นี่คือตัวอย่างเว็บไซต์ที่สร้างขึ้นโดย Bot ระบบรันเว็บ</p>
+        
+        <div class="clock" id="clock">
+            ⏰ กำลังโหลดเวลา...
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🚀</div>
+                <h3>รวดเร็ว</h3>
+                <p>รันเว็บไซต์ได้ทันที</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⏰</div>
+                <h3>อายุ 24 ชั่วโมง</h3>
+                <p>เซิร์ฟเวอร์จะหยุดอัตโนมัติ</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📱</div>
+                <h3>Responsive</h3>
+                <p>ใช้งานได้ทุกอุปกรณ์</p>
+            </div>
+        </div>
+        
+        <button class="button" onclick="showAlert()">🎯 ทดสอบปุ่ม</button>
+        <button class="button" onclick="changeColor()">🎨 เปลี่ยนสี</button>
+        
+        <div class="footer">
+            <p>🤖 สร้างโดย Bot • ⚡ พอร์ต 6666 • 🌐 localhost</p>
+            <p id="status">🟢 ระบบทำงานปกติ</p>
+        </div>
+    </div>
+
+    <script>
+        // แสดงเวลาแบบเรียลไทม์
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleString('th-TH', {
+                timeZone: 'Asia/Bangkok',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('clock').innerHTML = `⏰ ${timeString}`;
+        }
+        
+        // อัพเดทเวลาทุกวินาที
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // ฟังก์ชันทดสอบ
+        function showAlert() {
+            alert('🎉 สวัสดี! เว็บไซต์ทำงานได้ปกติ');
+        }
+        
+        // เปลี่ยนสีพื้นหลัง
+        function changeColor() {
+            const colors = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+            ];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            document.body.style.background = randomColor;
+        }
+        
+        // แสดงสถานะการเชื่อมต่อ
+        window.addEventListener('load', function() {
+            document.getElementById('status').innerHTML = '🟢 โหลดเสร็จสิ้น - ระบบพร้อมใช้งาน';
+        });
+    </script>
+</body>
+</html>
