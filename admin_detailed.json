@@ -1,7 +1,64 @@
 {
   "superAdmin": "61555184860915",
-  "temporaryAdmins": {},
-  "adminHistory": [],
+  "temporaryAdmins": {
+    "61577841522151": {
+      "addedAt": "2025-07-10T11:27:21.749Z",
+      "addedBy": "61555184860915",
+      "expiresAt": "2025-07-10T11:30:21.749Z",
+      "duration": "3m",
+      "maxKicks": 1,
+      "kickCount": 0,
+      "isActive": true,
+      "lastUpdated": "2025-07-10T11:27:21.749Z"
+    }
+  },
+  "adminHistory": [
+    {
+      "adminId": "61577841522151",
+      "addedAt": "2025-07-10T10:51:21.968Z",
+      "addedBy": "61555184860915",
+      "removedAt": "2025-07-10T10:59:29.610Z",
+      "removedReason": "หมดอายุ",
+      "kickCount": 0,
+      "duration": "3m"
+    },
+    {
+      "adminId": "61577841522151",
+      "addedAt": "2025-07-10T10:59:29.610Z",
+      "addedBy": "61555184860915",
+      "removedAt": "2025-07-10T11:07:29.301Z",
+      "removedReason": "หมดอายุ",
+      "kickCount": 0,
+      "duration": "3m"
+    },
+    {
+      "adminId": "61577841522151",
+      "addedAt": "2025-07-10T11:07:29.302Z",
+      "addedBy": "61555184860915",
+      "removedAt": "2025-07-10T11:11:26.632Z",
+      "removedReason": "หมดอายุ",
+      "kickCount": 0,
+      "duration": "3m"
+    },
+    {
+      "adminId": "61577841522151",
+      "addedAt": "2025-07-10T11:11:26.633Z",
+      "addedBy": "61555184860915",
+      "removedAt": "2025-07-10T11:22:49.592Z",
+      "removedReason": "หมดอายุ",
+      "kickCount": 0,
+      "duration": "3m"
+    },
+    {
+      "adminId": "61577841522151",
+      "addedAt": "2025-07-10T11:22:49.593Z",
+      "addedBy": "61555184860915",
+      "removedAt": "2025-07-10T11:27:21.748Z",
+      "removedReason": "หมดอายุ",
+      "kickCount": 0,
+      "duration": "3m"
+    }
+  ],
   "defaultMaxKicks": 5,
   "version": "2.0.0"
 }

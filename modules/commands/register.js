@@ -1,7 +1,4 @@
-const axios = require('axios');
-
-// Firebase Realtime Database URL
-const FIREBASE_URL = 'https://apikf-bbe63-default-rtdb.europe-west1.firebasedatabase.app';
+const { addUser, getMemberInfo } = require('../../utils/memberUtils');
 
 module.exports = {
     name: "สมัครสมาชิก",
@@ -17,10 +14,9 @@ module.exports = {
         
         try {
             // ตรวจสอบว่าผู้ใช้สมัครแล้วหรือไม่
-            const checkResponse = await axios.get(`${FIREBASE_URL}/users/${senderID}.json`);
+            const userData = await getMemberInfo(senderID);
             
-            if (checkResponse.data) {
-                const userData = checkResponse.data;
+            if (userData) {
                 const registeredDate = new Date(userData.registeredAt).toLocaleDateString('th-TH');
                 
                 return api.sendMessage(
@@ -41,36 +37,13 @@ module.exports = {
             const newUserData = {
                 name: userName,
                 userID: senderID,
-                registeredAt: new Date().toISOString(),
-                status: 'active',
-                lastActive: new Date().toISOString(),
-                registeredFrom: threadID,
-                commandsUsed: 0
+                registeredFrom: threadID
             };
             
-            // บันทึกข้อมูลลง Firebase
-            const registerResponse = await axios.put(`${FIREBASE_URL}/users/${senderID}.json`, newUserData);
+            // บันทึกข้อมูลลง JSON
+            const registerSuccess = addUser(senderID, newUserData);
             
-            if (registerResponse.status === 200) {
-                // อัปเดตสถิติการสมัคร
-                try {
-                    const statsResponse = await axios.get(`${FIREBASE_URL}/stats.json`);
-                    const currentStats = statsResponse.data || { totalUsers: 0, registrationsToday: 0 };
-                    
-                    const today = new Date().toDateString();
-                    const lastUpdate = currentStats.lastUpdate ? new Date(currentStats.lastUpdate).toDateString() : '';
-                    
-                    const newStats = {
-                        totalUsers: (currentStats.totalUsers || 0) + 1,
-                        registrationsToday: today === lastUpdate ? (currentStats.registrationsToday || 0) + 1 : 1,
-                        lastUpdate: new Date().toISOString()
-                    };
-                    
-                    await axios.put(`${FIREBASE_URL}/stats.json`, newStats);
-                } catch (statsError) {
-                    console.error('Error updating stats:', statsError);
-                }
-                
+            if (registerSuccess) {
                 return api.sendMessage(
                     `🎉 สมัครสมาชิกเรียบร้อยแล้ว!\n\n` +
                     `👤 ชื่อ: ${userName}\n` +
@@ -86,15 +59,6 @@ module.exports = {
             
         } catch (error) {
             console.error('Registration error:', error);
-            
-            if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-                return api.sendMessage(
-                    `❌ ไม่สามารถเชื่อมต่อกับระบบสมัครสมาชิกได้\n\n` +
-                    `🔧 กรุณาลองใหม่อีกครั้งในภายหลัง\n` +
-                    `📞 หากยังมีปัญหา กรุณาติดต่อผู้ดูแลระบบ`,
-                    threadID, messageID
-                );
-            }
             
             return api.sendMessage(
                 `❌ เกิดข้อผิดพลาดในการสมัครสมาชิก\n\n` +

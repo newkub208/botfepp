@@ -1,7 +1,4 @@
-const axios = require('axios');
-
-// Firebase Realtime Database URL
-const FIREBASE_URL = 'https://apikf-bbe63-default-rtdb.europe-west1.firebasedatabase.app';
+const { readJsonFile, writeJsonFile, USERS_FILE } = require('./memberUtils');
 
 /**
  * ตรวจสอบว่าผู้ใช้เป็นสมาชิกหรือไม่
@@ -10,21 +7,18 @@ const FIREBASE_URL = 'https://apikf-bbe63-default-rtdb.europe-west1.firebasedata
  */
 async function checkMembership(userID) {
     try {
-        const response = await axios.get(`${FIREBASE_URL}/users/${userID}.json`);
+        const users = readJsonFile(USERS_FILE, {});
+        const user = users[userID];
         
-        if (response.data && response.data.status === 'active') {
-            // อัปเดต lastActive
-            const updateData = {
-                lastActive: new Date().toISOString(),
-                commandsUsed: (response.data.commandsUsed || 0) + 1
-            };
+        if (user && user.status === 'active') {
+            // อัปเดต lastActive และ commandsUsed
+            user.lastActive = new Date().toISOString();
+            user.commandsUsed = (user.commandsUsed || 0) + 1;
             
-            // อัปเดตข้อมูลผู้ใช้แบบ async (ไม่รอผลลัพธ์)
-            axios.patch(`${FIREBASE_URL}/users/${userID}.json`, updateData).catch(err => {
-                console.error('Error updating user activity:', err);
-            });
+            // บันทึกกลับลงไฟล์
+            writeJsonFile(USERS_FILE, users);
             
-            return response.data;
+            return user;
         }
         
         return null;
@@ -41,8 +35,9 @@ async function checkMembership(userID) {
  */
 async function checkAdminStatus(userID) {
     try {
-        const response = await axios.get(`${FIREBASE_URL}/admins/${userID}.json`);
-        return response.data && response.data.status === 'active';
+        const users = readJsonFile(USERS_FILE, {});
+        const user = users[userID];
+        return user && user.isAdmin === true;
     } catch (error) {
         console.error('Error checking admin status:', error);
         return false;
@@ -104,8 +99,9 @@ async function validateMembershipBeforeCommand(api, event, commandName) {
  */
 async function getMembershipStats() {
     try {
-        const response = await axios.get(`${FIREBASE_URL}/stats.json`);
-        return response.data || { totalUsers: 0, registrationsToday: 0 };
+        const { readJsonFile, STATS_FILE } = require('./memberUtils');
+        const stats = readJsonFile(STATS_FILE, { totalUsers: 0, registrationsToday: 0 });
+        return stats;
     } catch (error) {
         console.error('Error getting membership stats:', error);
         return { totalUsers: 0, registrationsToday: 0 };
@@ -119,10 +115,9 @@ async function getMembershipStats() {
  */
 async function getAllMembers(limit = 50) {
     try {
-        const response = await axios.get(`${FIREBASE_URL}/users.json`);
-        if (!response.data) return [];
+        const users = readJsonFile(USERS_FILE, {});
         
-        const members = Object.entries(response.data)
+        const members = Object.entries(users)
             .map(([userID, userData]) => ({
                 userID,
                 ...userData
@@ -144,6 +139,5 @@ module.exports = {
     validateMembershipBeforeCommand,
     getMembershipStats,
     getAllMembers,
-    EXEMPT_COMMANDS,
-    FIREBASE_URL
+    EXEMPT_COMMANDS
 };

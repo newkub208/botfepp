@@ -1,8 +1,8 @@
 /**
  * @name สร้างคำสั่ง
- * @description สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI (ใช้ Kaiz-AI API) คำสั่งจะมีอายุ 1 วัน - ปรับปรุงความเสถียร
- * @version 2.4.1
- * @author (Your Name) - Updated to use Kaiz-AI endpoint + Enhanced error handling
+ * @description สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI (ใช้ Gemini Vision API) คำสั่งจะมีอายุ 1 วัน - ปรับปรุงความเสถียร
+ * @version 2.4.2
+ * @author (Your Name) - Updated to use Gemini Vision endpoint + Enhanced error handling
  * @nashPrefix false
  * @cooldowns 60
  * @aliases ["createcmd", "newcmd", "cmd", "คำสั่ง"]
@@ -15,8 +15,8 @@ const path = require("path");
 
 // --- Configuration ---
 const CONFIG = {
-    // [UPDATED] เปลี่ยนเป็น kaiz-ai endpoint ที่เสถียรกว่า
-    KAIZ_API_URL: "https://kaiz-apis.gleeze.com/api/kaiz-ai",
+    // [UPDATED] เปลี่ยนเป็น gemini-vision endpoint 
+    KAIZ_API_URL: "https://kaiz-apis.gleeze.com/api/gemini-vision",
     KAIZ_API_KEY: "e62d60dd-8853-4233-bbcb-9466b4cbc265",
     COMMAND_EXPIRY_HOURS: 24,
 };
@@ -277,7 +277,7 @@ async function showUserHistory(api, event, prefix) {
 module.exports = {
     name: "สร้างคำสั่ง",
     description: "สร้าง, ดูรายการ, หรือลบคำสั่งบอทโดยใช้ AI พร้อมระบบจดจำผู้ใช้ คำสั่งจะมีอายุ 1 วัน - ปรับปรุงความเสถียร",
-    version: "2.4.1",
+    version: "2.4.2",
     aliases: ["createcmd", "newcmd", "cmd", "คำสั่ง"],
     nashPrefix: false,
     cooldowns: 60,
@@ -337,7 +337,7 @@ module.exports = {
         let waitingMessage = null;
         try {
             waitingMessage = await api.sendMessage("🤖 กำลังส่งไอเดียของคุณไปยัง AI...", threadID, messageID);
-            await api.editMessage("🚀 AI กำลังสร้างโค้ดคำสั่งสำหรับคุณ (Kaiz-AI)...", waitingMessage.messageID);
+            await api.editMessage("🚀 AI กำลังสร้างโค้ดคำสั่งสำหรับคุณ (Gemini Vision)...", waitingMessage.messageID);
 
             const fullApiPrompt = `
                 ${generateSmartPrompt(userPrompt, senderID)}
@@ -374,15 +374,15 @@ module.exports = {
                 6. Return ONLY the JavaScript code, no explanations.
             `;
             
-            // [MODIFIED] Using the API endpoint requested by the user
-            const apiUrl = `${CONFIG.KAIZ_API_URL}?ask=${encodeURIComponent(fullApiPrompt)}&uid=${senderID}&apikey=${CONFIG.KAIZ_API_KEY}`;
+            // [MODIFIED] Using the Gemini Vision API endpoint
+            const apiUrl = `${CONFIG.KAIZ_API_URL}?q=${encodeURIComponent(fullApiPrompt)}&uid=${senderID}&imageUrl=&apikey=${CONFIG.KAIZ_API_KEY}`;
             
             const response = await axios.get(apiUrl, { timeout: 60000 });
             const responseData = response.data;
 
             if (!responseData || !responseData.response) {
-                console.error("[Kaiz-AI Response Error] Unexpected format received:", JSON.stringify(responseData, null, 2));
-                throw new Error(`API (Kaiz-AI) ไม่ได้ให้คำตอบกลับมาในรูปแบบที่ถูกต้อง`);
+                console.error("[Gemini Vision Response Error] Unexpected format received:", JSON.stringify(responseData, null, 2));
+                throw new Error(`API (Gemini Vision) ไม่ได้ให้คำตอบกลับมาในรูปแบบที่ถูกต้อง`);
             }
 
             let generatedCode = responseData.response;
@@ -392,18 +392,18 @@ module.exports = {
                              (generatedCode.trim().startsWith("http") && !generatedCode.includes("module.exports"));
             
             if (isOnlyUrl) {
-                console.error("[Kaiz-AI Invalid Response] Got URL instead of code:", generatedCode);
+                console.error("[Gemini Vision Invalid Response] Got URL instead of code:", generatedCode);
                 throw new Error("API ส่ง URL กลับมาแทนที่จะเป็นโค้ด อาจเป็นเพราะคำขอซับซ้อนเกินไป");
             }
             
             // ตรวจสอบว่ามีข้อความที่ไม่เกี่ยวข้องหรือไม่
             if (generatedCode.length < 50 || !generatedCode.includes("execute")) {
-                console.error("[Kaiz-AI Short Response]", generatedCode);
+                console.error("[Gemini Vision Short Response]", generatedCode);
                 throw new Error("API ตอบกลับข้อความสั้นเกินไป อาจไม่เข้าใจคำขอ");
             }
             
             if (!generatedCode.includes("module.exports")) {
-                 console.error("[Kaiz-AI Invalid Code]", generatedCode);
+                 console.error("[Gemini Vision Invalid Code]", generatedCode);
                  throw new Error("AI ไม่ได้สร้างโค้ดในรูปแบบที่ถูกต้อง (อาจเป็นข้อความทักทาย)");
             }
 
@@ -508,7 +508,7 @@ module.exports = {
                 console.log("⚠️ global.reloadGeneratedCommands function not available");
             }
 
-            const successMessage = `✅ สร้างคำสั่งใหม่สำเร็จแล้ว! (v2.4.1 - ปรับปรุงความเสถียร)\n\n` +
+            const successMessage = `✅ สร้างคำสั่งใหม่สำเร็จแล้ว! (v2.4.2 - ใช้ Gemini Vision)\n\n` +
                                  `🎯 ชื่อคำสั่ง: ${commandName}\n` +
                                  `🚀 คุณสามารถเริ่มใช้งานได้ทันทีด้วย: ${prefix}${commandName}\n` +
                                  `⏰ คำสั่งนี้จะถูกลบใน ${CONFIG.COMMAND_EXPIRY_HOURS} ชั่วโมง\n` +

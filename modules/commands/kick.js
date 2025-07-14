@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { updateKickCount, loadDetailedAdmins } = require('../../utils/adminManager');
+const { updateKickCount, loadDetailedAdmins, checkTemporaryAdminPermission, cleanExpiredAdmins } = require('../../utils/adminManager');
 
 // --- กำหนดค่าคงที่ ---
 const SUPER_ADMIN_ID = '61555184860915';
@@ -21,8 +21,31 @@ function loadAdmins() {
 
 // --- ฟังก์ชันตรวจสอบสิทธิ์แอดมิน ---
 function hasAdminPermission(senderID) {
+    console.log(`[KICK] Checking admin permission for ${senderID}`);
+    
+    if (senderID === SUPER_ADMIN_ID) {
+        console.log(`[KICK] ${senderID} is super admin`);
+        return { isAdmin: true, isTemporary: false };
+    }
+    
+    // ล้างแอดมินที่หมดอายุก่อน
+    cleanExpiredAdmins();
+    
+    // ตรวจสอบแอดมินชั่วคราว
+    const tempAdminCheck = checkTemporaryAdminPermission(senderID);
+    console.log(`[KICK] Temporary admin check for ${senderID}: ${tempAdminCheck}`);
+    
+    if (tempAdminCheck) {
+        console.log(`[KICK] ${senderID} is temporary admin`);
+        return { isAdmin: true, isTemporary: true };
+    }
+    
+    // ตรวจสอบแอดมินธรรมดา
     const admins = loadAdmins();
-    return senderID === SUPER_ADMIN_ID || admins.includes(senderID);
+    const isRegularAdmin = admins.includes(senderID);
+    console.log(`[KICK] Regular admin check for ${senderID}: ${isRegularAdmin}`);
+    
+    return { isAdmin: isRegularAdmin, isTemporary: false };
 }
 
 module.exports = {
@@ -42,11 +65,50 @@ module.exports = {
       const groupAdminIDs = threadInfo.adminIDs.map(admin => admin.id);
 
       // --- 2. ตรวจสอบสิทธิ์ผู้ใช้คำสั่ง ---
-      const isBotAdmin = hasAdminPermission(senderID);
+      const adminCheck = hasAdminPermission(senderID);
       const isGroupAdmin = groupAdminIDs.includes(senderID);
       
-      if (!isBotAdmin && !isGroupAdmin) {
-        return api.sendMessage("❌ คำสั่งนี้สำหรับแอดมินเท่านั้น", threadID, messageID);
+      if (!adminCheck.isAdmin && !isGroupAdmin) {
+        return api.sendMessage("❌ สิทธิ์แอดมินของคุณหมดแล้ว!\n⚠️ คุณไม่สามารถใช้คำสั่งเตะได้อีก", threadID, messageID);
+      }
+
+      // --- 2.1 ตรวจสอบขีดจำกัดการเตะสำหรับแอดมินชั่วคราว ---
+      if (adminCheck.isTemporary) {
+        console.log(`[KICK] Checking temporary admin limits for ${senderID}`);
+        const detailedData = loadDetailedAdmins();
+        const admin = detailedData.temporaryAdmins[senderID];
+        
+        if (!admin) {
+          console.log(`[KICK] No temporary admin data found for ${senderID}`);
+          return api.sendMessage("❌ ไม่พบข้อมูลแอดมินชั่วคราว", threadID, messageID);
+        }
+        
+        console.log(`[KICK] Admin data:`, admin);
+        
+        // ตรวจสอบการหมดอายุ
+        const now = new Date();
+        const expireTime = new Date(admin.expiresAt);
+        if (now >= expireTime) {
+          console.log(`[KICK] Admin ${senderID} expired`);
+          return api.sendMessage(
+            `❌ สิทธิ์แอดมินของคุณหมดอายุแล้ว!\n` +
+            `📅 หมดอายุเมื่อ: ${expireTime.toLocaleString('th-TH')}`,
+            threadID, 
+            messageID
+          );
+        }
+        
+        // ตรวจสอบขีดจำกัดการเตะ
+        if (admin.kickCount >= (admin.maxKicks || 5)) {
+          console.log(`[KICK] Admin ${senderID} reached kick limit: ${admin.kickCount}/${admin.maxKicks}`);
+          return api.sendMessage(
+            `❌ คุณใช้สิทธิ์เตะครบแล้ว!\n` +
+            `📊 เตะแล้ว: ${admin.kickCount}/${admin.maxKicks || 5} ครั้ง\n` +
+            `⚠️ คุณจะถูกลบออกจากตำแหน่งแอดมินอัตโนมัติ`,
+            threadID, 
+            messageID
+          );
+        }
       }
 
       // --- 3. หาเป้าหมายที่จะเตะ ---
@@ -94,19 +156,24 @@ module.exports = {
       // --- 7. อัพเดทจำนวนการเตะ (สำหรับแอดมินชั่วคราว) ---
       let kickMessage = `✅ เตะ "${targetName}" ออกจากกลุ่มเรียบร้อยแล้ว`;
       
-      if (isBotAdmin && senderID !== SUPER_ADMIN_ID) {
+      if (adminCheck.isAdmin && adminCheck.isTemporary) {
+        console.log(`[KICK] Updating kick count for temporary admin ${senderID}`);
         const kickResult = updateKickCount(senderID);
+        console.log(`[KICK] Kick result:`, kickResult);
+        
         if (kickResult) {
           if (kickResult.removed) {
-            kickMessage += `\n\n🚫 คุณถูกลบออกจากตำแหน่งแอดมินเนื่องจาก${kickResult.reason}`;
+            kickMessage += `\n\n🚫 สิทธิ์แอดมินของคุณหมดแล้ว!\n` +
+                          `📍 สาเหตุ: ${kickResult.reason}\n` +
+                          `⚠️ คุณไม่สามารถใช้คำสั่งเตะได้อีกแล้ว`;
             
             // ส่งข้อความแจ้งเตือนให้ Super Admin
             try {
               await api.sendMessage(
-                `⚠️ แจ้งเตือน: แอดมินชั่วคราว "${targetName}" (${senderID}) ถูกลบออกอัตโนมัติ\n` +
+                `⚠️ แจ้งเตือน: แอดมินชั่วคราว (${senderID}) ถูกลบออกอัตโนมัติ\n` +
                 `📍 สาเหตุ: ${kickResult.reason}\n` +
-                `� จำนวนการเตะที่กำหนด: ${kickResult.maxKicks} ครั้ง\n` +
-                `�📅 เวลา: ${new Date().toLocaleString('th-TH')}`,
+                `🎯 จำนวนการเตะที่กำหนด: ${kickResult.maxKicks} ครั้ง\n` +
+                `📅 เวลา: ${new Date().toLocaleString('th-TH')}`,
                 SUPER_ADMIN_ID
               );
             } catch (e) {
@@ -118,6 +185,8 @@ module.exports = {
                           `• เหลือ: ${kickResult.remaining} ครั้ง\n` +
                           `⚠️ หากเตะครบ ${kickResult.maxKicks} ครั้ง จะถูกลบออกจากแอดมินทันที`;
           }
+        } else {
+          console.log(`[KICK] Warning: No kick result returned for ${senderID}`);
         }
       }
 
